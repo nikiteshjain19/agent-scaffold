@@ -1,0 +1,11 @@
+{
+  "name": "agent-scaffold",
+  "owner": { "name": "nikiteshjain19" },
+  "plugins": [
+    {
+      "name": "base",
+      "source": "./",
+      "description": "The workflow scaffold's seven agent skills, invoked as base:<skill>."
+    }
+  ]
+}

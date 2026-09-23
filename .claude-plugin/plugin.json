@@ -1,0 +1,10 @@
+{
+  "name": "base",
+  "description": "A tool-agnostic workflow for coding agents, and the seven skills that drive it: plan a feature, write issues, work the backlog, review a pull request, merge what is ready, and audit a codebase.",
+  "version": "0.1.0",
+  "author": { "name": "nikiteshjain19" },
+  "homepage": "https://github.com/nikiteshjain19/agent-scaffold",
+  "license": "MIT",
+  "keywords": ["workflow", "skills", "code-review", "issues", "pull-requests"],
+  "skills": "./.claude/skills/"
+}

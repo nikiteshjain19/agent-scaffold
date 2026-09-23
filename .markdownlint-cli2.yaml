@@ -1,0 +1,30 @@
+# markdownlint-cli2 configuration
+#
+# Principle: the config bends to the house style these documents already use, and no
+# further. A rule is disabled only where a documented convention requires it, and the
+# reason is recorded inline.
+
+globs:
+  - "**/*.md"
+
+ignores:
+  - "node_modules"
+
+config:
+  # The prose wraps at ~100 columns throughout. Tables and code blocks are exempt because
+  # neither can be wrapped without breaking what it encodes; headings are exempt because
+  # several decision titles legitimately run long.
+  MD013:
+    line_length: 100
+    tables: false
+    code_blocks: false
+    headings: false
+
+  # A decision entry may carry an HTML comment, which is part of the record.
+  MD033: false
+
+  # CLAUDE.md §11 is one numbered list of 11 rules that continues across sub-headings, and
+  # those numbers are cited from outside the file — PROJECT.md's "Build / lint / test
+  # commands" section and the issue-writer skill both cite "§11 rule 4". Renumbering to
+  # satisfy MD029 would silently break every citation.
+  MD029: false
