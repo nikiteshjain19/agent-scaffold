@@ -29,17 +29,17 @@ Add this to the `.claude/settings.json` of any repository that should use the sk
 ```json
 {
   "extraKnownMarketplaces": {
-    "agent-scaffold": {
+    "hivion": {
       "source": { "source": "github", "repo": "nikiteshjain19/agent-scaffold" }
     }
   },
-  "enabledPlugins": { "base@agent-scaffold": true }
+  "enabledPlugins": { "hivion@hivion": true }
 }
 ```
 
-The skills then appear as `base:issue-loop`, `base:pr-reviewer`, and so on. Commit that file, and
-every session on that repository gets them — including cloud sessions, which install a repo's
-declared plugins at session start.
+The skills then appear as `hivion:issue-loop`, `hivion:pr-reviewer`, and so on. Commit that file,
+and every session on that repository gets them — including cloud sessions, which install a
+repository's declared plugins at session start.
 
 ## Use the workflow
 
