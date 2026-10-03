@@ -24,20 +24,48 @@ any other tool.
 
 ## Install the plugin
 
-Add this to the `.claude/settings.json` of any repository that should use the skills:
+Register the marketplace, then install the plugin. Run both in Claude Code:
 
-```json
-{
-  "extraKnownMarketplaces": {
-    "hivion": {
-      "source": { "source": "github", "repo": "nikiteshjain19/agent-scaffold" }
-    }
-  },
-  "enabledPlugins": { "hivion@hivion": true }
-}
+```
+/plugin marketplace add nikiteshjain19/agent-scaffold
+/plugin install hivion@hivion
 ```
 
-The skills then appear as `hivion:issue-loop`, `hivion:pr-reviewer`, and so on.
+The repository is `nikiteshjain19/agent-scaffold`; the marketplace and the plugin are both named
+`hivion`, which is why the install id reads `hivion@hivion`. The skills then appear as
+`hivion:issue-loop`, `hivion:pr-reviewer`, and so on.
+
+The shell form, for a script:
+
+```bash
+claude plugin marketplace add nikiteshjain19/agent-scaffold
+claude plugin install hivion@hivion
+```
+
+### Turn it on for a repository
+
+To enable the plugin for everyone working in one repository, register it at project scope and
+commit the result:
+
+```bash
+claude plugin marketplace add nikiteshjain19/agent-scaffold --scope project
+claude plugin install hivion@hivion --scope project
+```
+
+That writes `.claude/settings.json`. **Committing it turns the plugin on for your collaborators
+but does not download it to their machines**, so each of them runs the install command once.
+
+### Pin a version
+
+A marketplace can be pinned to a tag, so a repository tracks a release rather than the latest
+commit:
+
+```
+/plugin marketplace add nikiteshjain19/agent-scaffold#v0.1.0
+```
+
+Auto-update is off by default for a marketplace like this one. You receive a change when the
+plugin's `version` is bumped, and not before.
 
 ### Cloud sessions do not install this plugin
 
