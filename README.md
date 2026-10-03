@@ -37,18 +37,28 @@ Add this to the `.claude/settings.json` of any repository that should use the sk
 }
 ```
 
-The skills then appear as `hivion:issue-loop`, `hivion:pr-reviewer`, and so on. Commit that file,
-and every session on that repository gets them — including cloud sessions, which install a
-repository's declared plugins at session start.
+The skills then appear as `hivion:issue-loop`, `hivion:pr-reviewer`, and so on.
+
+### Cloud sessions do not install this plugin
+
+**A cloud session starts from a fresh clone, and installs no plugin a repository declares.** The
+Claude Code documentation states it directly: a cloud session does not install the plugins a
+repository turns on under `enabledPlugins`, including ones from the marketplaces it lists under
+`extraKnownMarketplaces`. So the snippet above reaches local sessions only.
+
+A cloud session loads what the clone carries — the repository's own `CLAUDE.md`, `.claude/rules/`,
+`.claude/skills/` and `.claude/settings.json` hooks — plus the skills you enable on claude.ai. To
+reach one, give it the skills by one of those routes instead.
 
 ## Use the workflow
 
 The plugin carries the skills. It does not carry `CLAUDE.md`, because a plugin cannot install one.
 Give your repository the workflow in whichever way suits it:
 
-- copy [`CLAUDE.md`](CLAUDE.md) into the repository, or
-- import it from a local clone with `@path/to/CLAUDE.md` in your own `CLAUDE.md`. A home-directory
-  path resolves in local sessions only, so a cloud session sees nothing.
+- copy [`CLAUDE.md`](CLAUDE.md) into the repository. A cloud session reads the repository's own
+  `CLAUDE.md`, so this is the route that works everywhere;
+- or import it from a local clone with `@path/to/CLAUDE.md` in your own `CLAUDE.md`. A
+  home-directory path resolves in local sessions only, so a cloud session sees nothing.
 
 Then tell your agent **"start new project"**. It runs the interview in `CLAUDE.md` §0 and writes the
 `PROJECT.md` every skill reads.
