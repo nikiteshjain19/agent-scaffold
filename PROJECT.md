@@ -86,6 +86,7 @@ STYLE.md
 PROJECT.md
 README.md
 decisions.d/**
+skills/**
 .claude/**
 .claude-plugin/**
 .github/**

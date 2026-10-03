@@ -13,7 +13,7 @@ any other tool.
   the two-tier merge gate, the testing policy, secret handling, and the interview that sets a new
   project up.
 - **[`STYLE.md`](STYLE.md)** — how to write a document an agent executes rather than interprets.
-- **`.claude/skills/`** — seven skills, in the order they run:
+- **`skills/`** — seven skills, in the order they run:
   - `feature-plan` — turn a feature request into an approved design before any issue is filed.
   - `issue-writer` — turn an idea, or an approved plan, into executable tracker issues.
   - `issue-loop` — work the backlog unattended, one lane per issue, one PR per lane.
