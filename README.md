@@ -26,7 +26,7 @@ any other tool.
 
 Register the marketplace, then install the plugin. Run both in Claude Code:
 
-```
+```text
 /plugin marketplace add nikiteshjain19/agent-scaffold
 /plugin install hivion@hivion
 ```
@@ -60,7 +60,7 @@ but does not download it to their machines**, so each of them runs the install c
 A marketplace can be pinned to a tag, so a repository tracks a release rather than the latest
 commit:
 
-```
+```text
 /plugin marketplace add nikiteshjain19/agent-scaffold#v0.1.0
 ```
 
