@@ -181,7 +181,8 @@ These are `CLAUDE.md` §6's checks. Do not substitute a different list, and do n
 one. All seven apply to every pull request, in either tier.
 
 1. **Correctness** — read the diff critically. Judge the logic, the edge cases, the error
-   handling, the security, and whether the tests assert the behaviour they claim.
+   handling, the security, and whether the tests assert the behaviour they claim. Then check the
+   diff for a line that cannot justify its existence, below.
 2. **Decision freshness** — re-read every decision entry dated after the branch point from §2.
    Name any entry that touches what this pull request changes. A pull request that contradicts a
    logged decision is stale, and it must never merge.
@@ -198,6 +199,25 @@ one. All seven apply to every pull request, in either tier.
    Confirm the body describes what this pull request would land now. Name any sentence the
    current diff no longer supports. A body describing a superseded version of the change is
    stale, and it fires escalation condition 7 in §5.
+
+**A line that cannot justify its existence fails check 1.** `CLAUDE.md` §4, "Justify every line
+you write", defines the seven shapes and what the rule does not cover. Check every line the diff
+adds or changes for each shape:
+
+1. a comment that restates its code;
+2. a guard against an unreachable state, with no test that exercises it;
+3. a helper, parameter, option or config key with one caller, or none;
+4. an abstraction for a second case that does not exist yet;
+5. replaced code left in place — a dead branch, a superseded function, a commented-out block;
+6. error handling that catches and does nothing, or re-throws unchanged;
+7. a docstring or block comment that restates a visible signature.
+
+- Quote each matching line, with its file and line number. Name the shape it matches, by number.
+- Record check 1 as `fail` when any line matches.
+- Never judge the code around the diff.
+- Skip each exemption the rule names: a tested guard, a test, documentation that says more than
+  its code, and document prose.
+- Record check 1 as `unevaluable` when you cannot tell whether a line matches.
 
 Record an outcome for each check: `pass`, `fail`, or `unevaluable`. **A check you cannot evaluate
 counts as failed**, and it blocks approve on its own.
@@ -250,6 +270,7 @@ feedback loop it can have, so note a breach — and never grade one.
 
 - Note a style breach as an observation, with the file and the line.
 - Report any other small finding the same way: a naming nit, a stale comment, a thin test name.
+- Never note a line that matches a check 1 shape. It fails check 1 instead (D-11).
 - Keep every note out of the verdict's reasoning.
 - Never let a note fire a condition. Never let a note turn approve into escalate.
 
@@ -271,8 +292,9 @@ Return exactly one of three verdicts. Put it on the first line, alone.
 
 **`escalate` and `reject` answer different questions.** `escalate` is about who decides. `reject`
 is about the change itself: it contradicts a logged decision, it weakens a test, it duplicates
-merged work, or its ticket was cancelled. Both block the auto-merge tier identically. Use
-`reject` when the next action is fixing the pull request rather than reading it.
+merged work, its ticket was cancelled, or it carries a line that cannot justify its existence
+(check 1). Both block the auto-merge tier identically. Use `reject` when the next action is fixing
+the pull request rather than reading it.
 
 Return the verdict in this shape:
 
@@ -281,7 +303,7 @@ VERDICT: <approve | escalate | reject>
 PR: #<number> — <title> — @<author>
 INDEPENDENCE: <established | not established> — invocation carried <identifiers only | the item> — <the evidence>
 PRE-MERGE CHECKS (CLAUDE.md §6):
-  1 correctness         <pass | fail | unevaluable> — <evidence>
+  1 correctness         <pass | fail | unevaluable> — <evidence; each unjustified line, quoted, and its shape>
   2 decision freshness  <…>
   3 duplicate           <…>
   4 staleness vs BASE   <…>
@@ -344,6 +366,7 @@ Re-read the verdict as the agent that will act on it, and kill it if:
 - It cites a decision entry you did not open.
 - It clears the footprint condition without quoting the declared footprint.
 - It approves a pull request whose author you could not distinguish from yourself.
+- It fails check 1 for an unjustified line without quoting the line and naming its shape.
 - Its reason would not tell a human what to do next, on its own.
 
 ---
