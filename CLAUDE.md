@@ -165,7 +165,7 @@ Before writing any code, an agent picking up a ticket must, in order:
    existing design rather than inventing a parallel one.
 6. **Confirm the consumer exists** for anything you're about to build (§5, rule 3).
 7. **Plan briefly, then implement** — smallest change that satisfies the acceptance criteria.
-   Scope creep goes in a new ticket, not the current branch.
+   Scope creep goes in a new ticket, not the current branch. Justify every line you write (below).
 8. **Verify like a skeptic**: run build/lint/tests; for changes applied out-of-band (DB
    migrations, dashboard config, DNS, third-party settings), verify the live system actually
    reflects them — a file existing in the repo does NOT mean the change exists in production.
@@ -173,6 +173,42 @@ Before writing any code, an agent picking up a ticket must, in order:
    results checked explicitly.
 9. **Open the PR** (§6) and update the ticket. The ticket is the record of the work: comment what
    shipped, and let the PR link close it (§2).
+
+**Justify every line you write.** Rule 7 limits what a change covers. This rule limits what it
+carries. Give every line in the diff one of these four reasons:
+
+- the acceptance criteria require it;
+- an existing caller needs it;
+- a test covers it;
+- it repairs a defect the ticket names.
+
+"It might help" is not a reason. Remove a line that has none. These seven shapes have none, and a
+reviewer checks the diff for each one (§6, pre-merge check 1):
+
+1. **A comment that restates its code.** `// increment the counter` above `counter++` says what,
+   not why.
+2. **A guard against a state the code cannot reach, with no test that exercises it.** A real guard
+   has a failure-branch test (§11 rule 7).
+3. **A helper, parameter, option or config key with one caller, or none.** This is §5 rule 3,
+   applied inside a file.
+4. **An abstraction for a second case that does not exist yet.**
+5. **Code the change replaced, left in place** — a dead branch, a superseded function, or a
+   commented-out block.
+6. **Error handling that catches and does nothing**, or catches and re-throws unchanged.
+7. **A docstring or block comment that restates a signature** the reader can already see.
+
+**What this rule does not cover:**
+
+- **It is not a line count.** A long diff is fine when every line earns its place.
+- **It never covers a guard that has a test.** §11 rule 3 requires exactly those guards on
+  high-stakes paths.
+- **It never covers a test.** Tests are part of the change (§11). A test that looks repetitive is
+  usually correct.
+- **It never covers documentation that says more than the code shows.** Shapes 1 and 7 catch only
+  restatement.
+- **It judges the diff, never the code around it.** Cleaning up neighbouring code is scope creep
+  (rule 7).
+- **It governs code, never the prose of a document or a skill.** `STYLE.md` governs prose (§9).
 
 ## 5. Dependencies & build order
 
@@ -218,7 +254,8 @@ no consumer — that later work has to detect and remove. That is pure waste, tw
 this review (the implementing agent, or preferably a separate reviewing agent) must check:
 
 1. **Correctness review** — read the full diff critically: logic, edge cases, error handling,
-   security, tests actually asserting the behavior.
+   security, tests actually asserting the behavior. Check the diff for the seven shapes in §4,
+   "Justify every line you write". A line matching one fails this check (D-11).
 2. **Decision freshness** — re-read the decision log (`decisions.d/`, §7) for every entry
    dated after this PR's branch was created. If any decision changed something this PR touches
    (pricing, schema, naming, architecture, scope), the PR is **stale**: update it to match the
