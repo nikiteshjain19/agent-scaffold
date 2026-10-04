@@ -166,6 +166,7 @@ each one itself:
 - the size threshold (condition 5);
 - the reviewer's verdict (condition 6);
 - a stale ticket, PR body or decision (condition 7);
+- an effect a revert cannot undo (condition 8);
 - the rule that an agent never merges its own PR;
 - the per-PR approval the escalation tier requires.
 

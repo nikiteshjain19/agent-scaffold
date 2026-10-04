@@ -31,12 +31,48 @@ topic at a time, covering:
    vs. decide.
 7. **Merge gate** — what makes a change safe to merge without a human reading it. Capture: the
    exact command or check that produces a trustworthy **green signal**; which paths are
-   **high-risk** and always need a human regardless (schema, auth, money, secrets, CI config,
-   dependencies, public API); whether the repo host **enforces** checks server-side (required
-   status checks / branch protection) or whether the gate is only honoured by whoever merges;
+   **high-risk** and always need a human regardless (start from the default risk list below);
+   whether the repo host **enforces** checks server-side (required status checks / branch
+   protection) or whether the gate is only honoured by whoever merges;
    how many issues may be worked **in parallel**; and whether a PR straying outside its issue's
    declared file footprint escalates. Record it as a Merge gate section in `PROJECT.md` — the
    review/merge flow reads exactly this to decide what it may merge unattended.
+
+**The default risk list — propose it in topic 7, in two parts.** Without a default, a project
+protects either too little or too much (D-12).
+
+**Always risk-listed, in every project** — the files that decide how agents behave, and the record
+of why:
+
+- `CLAUDE.md`, `PROJECT.md` and `README.md`;
+- the decision log directory (`decisions.d/`);
+- the project's agent configuration, including any skills or agent definitions it holds;
+- CI and deployment configuration.
+
+**Risk-listed when the project has them** — a worked example an application repo can copy:
+
+- migrations and schema;
+- auth and session;
+- billing and payments;
+- entitlements and access control;
+- secrets;
+- dependency manifests and lockfiles;
+- public API contracts;
+- cost and infrastructure configuration;
+- personal-data deletion, export or retention;
+- feature-flag defaults.
+
+**Documentation outside the risk list is an ordinary change.** A docs-only diff outside the list
+reaches the auto lane whenever no escalation condition fires. That means a green signal, an approve
+verdict, a diff inside the footprint, and a diff inside the size threshold. Nothing about a docs
+change is special, and nothing about it is exempt.
+
+**Classify by path, never by what the PR calls itself.** A diff described as a doc fix that edits a
+risk-listed file is a risk-listed change. Escalation condition 1 reads the diff (§6).
+
+**Ask which documentation is load-bearing.** Some documentation changes behaviour: a runbook, an API
+contract, a published policy, a prompt an agent executes, or an `.env.example`. Ask the project
+whether any of its documentation falls in that class. Risk-list each such path by name.
 
 Then generate, commit (via a ticket + PR like any other change), and keep maintained:
 
@@ -245,6 +281,12 @@ A PR escalates if **any** of these hold:
    enforcement on. Straying is usually scope creep and occasionally a mis-scoped issue; either way a
    human should see it.
 4. **A test is deleted, skipped, or weakened** (§11 rule 10). No issue's instructions override this.
+   Two weakening moves are the common ones, and each fires this condition:
+   - a snapshot or expected-output fixture updated so that it matches the new output;
+   - a threshold, tolerance or timeout loosened until the assertion passes.
+
+   A snapshot update is legitimate when the output changed on purpose and the PR body says so. It
+   still fires this condition. It is a finding the PR explains, never an edit to wave through.
 5. **The diff exceeds the project's declared size threshold** — or **the project declares no
    threshold**, in which case this condition is met by default and nothing auto-merges until one is
    declared in the Merge gate section.
@@ -255,6 +297,17 @@ A PR escalates if **any** of these hold:
 7. **A record this PR carries is stale** — the ticket, the PR body, or a decision-log entry
    postdating the branch and touching what this PR changes. **A body that contradicts its diff
    fires this condition.** Never note it as a finding and wave the PR through.
+8. **The diff can cause an effect a revert cannot undo.** The test: a revert of this commit returns
+   the system to its prior state, with no action needed outside the repository. If it does not, this
+   condition fires. These are the shapes it covers:
+   - data deleted, dropped or truncated, and a migration that is not reversible;
+   - a message sent to a person — an email, an SMS, a push, or a webhook to a third party;
+   - money moved, or spend incurred, including a paid API call in a new code path;
+   - a credential, key or token rotated, revoked or published;
+   - an external resource destroyed — a bucket, a queue, a DNS record, or an account.
+
+   This condition reads the effect, never the path. It fires even when no risk-list path is touched
+   (D-12).
 
 **An escalated PR merges only under the approval gate.** Agents may perform the merge, but only
 under all of these:
@@ -321,8 +374,9 @@ because the passages you fixed make the ones you missed read as checked (D-168).
 4. A diff over the size threshold (condition 5).
 5. A cancelled, descoped or superseded ticket, or a decision entry that contradicts the PR
    (condition 7).
-6. An `intent` conflict, and a locked pair.
-7. A PR whose own work you authored.
+6. An effect a revert cannot undo (condition 8).
+7. An `intent` conflict, and a locked pair.
+8. A PR whose own work you authored.
 
 Repairing one of those either changes nothing or decides scope on the user's behalf. Scope is the
 user's to decide, and a condition that fires on a correct PR is not asking to be fixed.
@@ -347,8 +401,8 @@ conditional form adds no new bar:
 3. **Every other escalation condition cleared on its own.**
 
 **What does not change — read this before taking the relaxation wider.** A repair still confers
-authorship. An agent still never merges a PR it repaired. The other six escalation conditions are
-untouched, so a repaired PR on a risk-listed path still escalates.
+authorship. An agent still never merges a PR it repaired. No escalation condition is relaxed, so a
+repaired PR on a risk-listed path still escalates.
 
 **Never weaken, skip or delete a test to make a repair pass** (§11 rule 10). No finding overrides
 that rule, and a repair is not an exception to it.
@@ -383,7 +437,7 @@ eligible ticket from them indefinitely, and the backlog looks emptier than it is
 
 ### Auto-merge tier — an agent may merge without asking
 
-A PR reaches this tier only when **none** of the seven escalation conditions holds, and **all** of
+A PR reaches this tier only when **none** of the eight escalation conditions holds, and **all** of
 these are true:
 
 - the seven pre-merge checks above pass;

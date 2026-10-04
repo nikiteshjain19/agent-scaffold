@@ -4,7 +4,7 @@ description: >-
   Review and merge open pull requests one at a time, sorted into two lanes by the
   risk-tiered gate in CLAUDE.md §6, then update each merged PR's tracker ticket and
   sweep the tickets that ticket blocked, clearing the dependency signal on every one
-  whose blockers are now all complete. A PR that trips any of the seven escalation
+  whose blockers are now all complete. A PR that trips any of the eight escalation
   conditions waits for an explicit human approval; a PR that trips none may merge
   after an independent reviewer approves it. The run records each waiting question
   instead of stopping, and presents them all in one digest at the end.
@@ -37,7 +37,7 @@ implements it rather than restating a different one.
   records that question in the escalation queue and moves to the next PR (`CLAUDE.md` §13). The
   DIGEST presents every recorded question at the end, in one place.
 - **Auto lane** — an agent merges without asking. A PR reaches it only when it trips none of the
-  seven escalation conditions and an independent reviewer returns `approve`.
+  eight escalation conditions and an independent reviewer returns `approve`.
 
 **Everything this loop presents is written for a reader who has not read the rules.** The user
 decides; the vocabulary of the gate is yours, not theirs. See PLAIN-LANGUAGE RULE and ASK BLOCK.
@@ -473,8 +473,10 @@ Record the PR's head commit SHA before you start. The classification belongs to 
    Read the declared footprint from the ticket. Name every changed file outside it. This condition
    fires when enforcement is on and the ticket declares no footprint.
 4. **A test deleted, skipped or weakened.** Search the diff for removed test files, removed
-   assertions and skip markers. No issue's instructions override this condition
-   (`CLAUDE.md` §11 rule 10).
+   assertions and skip markers. Search it for an updated snapshot or expected-output fixture. Search
+   it for a loosened threshold, tolerance or timeout. Each one fires this condition. A snapshot
+   update the PR body explains still fires it, so a human reads the explanation. No issue's
+   instructions override this condition (`CLAUDE.md` §11 rule 10).
 5. **Size threshold.** Read the numbers from the host rather than counting them
    (`gh pr view <num> --json additions,deletions,changedFiles`). Compare them against the declared
    threshold. An undeclared threshold fires this condition by default.
@@ -486,6 +488,12 @@ Record the PR's head commit SHA before you start. The classification belongs to 
    superseded. It fires on a decision entry that touches what this PR changes. It fires on a body
    that describes a superseded version of the change — never record that as a finding and pass the
    PR on.
+8. **An effect a revert cannot undo.** Ask whether a revert of this commit returns the system to
+   its prior state, with no action needed outside the repository. This condition fires when it does
+   not. Read the diff for each shape `CLAUDE.md` §6 names: data deleted or an irreversible
+   migration, a message sent to a person, money moved or spend incurred, a credential rotated or
+   published, an external resource destroyed. Name the hunk. A diff that touches no risk-list path
+   can still fire this condition.
 
 **The tie-break is fixed.** A condition you cannot evaluate counts as met. Never record such a
 condition as clear, and never record it as not applicable.
@@ -536,7 +544,7 @@ wrong lane goes unnoticed.
 **A PR classified `auto` has not yet cleared condition 6.** The classification is provisional. It
 authorises nothing on its own, and the auto lane's first step is the verdict that completes it.
 
-**A conflict fires none of the seven conditions.** A conflicting PR can therefore classify `auto`.
+**A conflict fires none of the eight conditions.** A conflicting PR can therefore classify `auto`.
 Run CONFLICT for every PR that conflicts with BASE, before either lane acts on that PR.
 
 ## CONFLICT — run for any PR that conflicts with BASE
@@ -766,6 +774,7 @@ you touch anything.
 | A test deleted, skipped or weakened (condition 4) | `CLAUDE.md` §11 rule 10 sends this to a human, always. |
 | A diff over the size threshold (condition 5) | Splitting a PR decides scope on the user's behalf. |
 | A cancelled ticket, or a contradicting decision (condition 7) | Only the user can say what the project now wants. |
+| An effect a revert cannot undo (condition 8) | Removing the effect changes what the PR does, which is a scope decision. |
 | An `intent` conflict, or a locked pair | Both sides want opposite things, and picking one is the user's call. |
 | A PR whose own work you authored | You could never separate your repair from your own work again. |
 
@@ -1513,8 +1522,8 @@ states which of the two situations applies. Read that field in CONFIG and report
   worse than an unrepaired one, because the parts you fixed make the parts you missed look checked.
   A failed gate and a red check stop a repair; a pass count never does.
 - **Never repair a policy flag.** A risk-listed path, a footprint stray, an oversized diff, a
-  weakened test, a cancelled ticket, a contradicting decision, an `intent` conflict and a locked
-  pair are not defects, and repairing one decides scope on the user's behalf.
+  weakened test, a cancelled ticket, a contradicting decision, an irreversible effect, an `intent`
+  conflict and a locked pair are not defects, and repairing one decides scope on the user's behalf.
 - **A repair makes you the PR's author**, and D-77's resolution-commit exemption does not reach it.
   Never merge that PR, and never fetch a verdict on it. Hand it off, and leave the repair record a
   later session reads.
