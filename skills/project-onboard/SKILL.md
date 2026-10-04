@@ -71,8 +71,9 @@ than a short log.
 
 ## 0. PRECONDITIONS — check two facts, and read nothing else
 
-Read the workflow's `CLAUDE.md` for the interview topics. Then check two facts, without opening any
-other file:
+Read one file before the interview: the workflow's own `CLAUDE.md`, for the §0 interview topics.
+That is the scaffold's rules file. Never read a file from the project being adopted. That includes
+the project's own `CLAUDE.md`, if it has one. Then check two facts, without opening any other file:
 
 1. **Does `PROJECT.md` exist?** List the repository root to find out. Never open the file yet.
    If it exists, STOP. Ask the owner whether to replace it. This skill writes a first `PROJECT.md`,
@@ -177,6 +178,11 @@ git grep -n -I -E '<pattern>' | cut -d: -f1,2
 git log --all -G '<pattern>' --format='%h %ad' --date=short --name-only
 ```
 
+**Read the history output as locations to check, not as proof.** Git lists only the files whose diff
+matched the pattern. Never add `--pickaxe-all`. It lists every file a matching commit touched, so the
+report would over-name files. The `-G` option matches a removed line too. A hit can be the commit that
+deleted a secret. Never print the matched text to tell the two apart.
+
 A secret scanner may replace these, but only with its redaction option on. Never open a matching
 line to "confirm" it. Never write a value to any surface `CLAUDE.md` §8 lists. Treat each hit as a
 committed secret until the owner says otherwise.
@@ -272,11 +278,16 @@ Use the section names the skills read (`CLAUDE.md` §0). A renamed section reads
 | **Product** | What the product is today, who it is for, and what ships next. |
 | **Toolchain** | The repo host, the CI, the hosting, the services, and the tracker mapping the `issue-loop` skill reads: how to reach the tracker, its real status names, its priority model, its id format, its dependency signal, its input-needed signal, and its hold signals — including the pre-adoption signal. |
 | **Build / lint / test commands** | The commands the survey proved, and the pre-PR gate. Say which ones do not exist. |
-| **Merge gate** | Green signal, risk-list paths, size threshold, footprint enforcement, and the enforcement mechanism — what the host enforces and what is only honoured. |
+| **Merge gate** | Green signal, risk-list paths and how they are matched, size threshold, footprint enforcement, and the enforcement mechanism — what the host enforces and what is only honoured. |
 | **Parallelism** (inside Merge gate) | Max lanes, max cycles per run, and max repair rounds per pull request. |
 | **Milestones / build sequence** | What is in flight, and what must ship before what. |
 | **Constraints & working style** | Spend caps where the project calls a paid API (`CLAUDE.md` §10), compliance, secrets categories, and how much autonomy agents get. |
 | **Adoption** | The adoption date, observe mode and its exit criteria, what is grandfathered, the open pull requests and what happens to each, the reported secret locations, and every field still at its fail-closed default. |
+
+**Record how the risk-list patterns are matched**, for example "matched as gitignore rules
+(`gitignore(5)`)". The `pr-merge-loop` skill treats escalation condition 1 as unevaluable without a
+declared matcher. Condition 1 then fires on every pull request, even after the observe-mode `*`
+entry comes out.
 
 ### Observe mode — how adoption ends
 
@@ -319,7 +330,9 @@ autonomy.
 
 ## HARD RULES
 
-- **Never read code, docs or configuration before the interview is recorded.** PRECONDITIONS lists
+- **Never read code, docs or configuration before the interview is recorded.** One exception
+  exists: the workflow's own `CLAUDE.md`, the scaffold's rules file, for the §0 topics. Never read a
+  file from the project being adopted, including the project's own `CLAUDE.md`. PRECONDITIONS lists
   the two facts you may check.
 - **Never pass the interview record to the surveyor.**
 - **Never ask the owner a question a command can settle.**
@@ -329,7 +342,9 @@ autonomy.
 - **Never backfill.** No retroactive ticket, no rewritten history, no backfilled test, no renamed
   branch.
 - **Never spec the backlog in bulk.** Spec an issue when someone picks it up.
-- **Never apply the escalation conditions to a pull request opened before adoption.**
+- **Never apply the escalation conditions to a pull request opened before adoption.** This rule
+  binds the adoption itself. A later `pr-merge-loop` run still classifies those pull requests. In
+  observe mode, each one goes to a human.
 - **Never print a secret**, and never rewrite history to remove one. Recommend rotation at the
   source.
 - **Never infer a decision from code.**
