@@ -1,0 +1,11 @@
+{
+  "name": "hivion",
+  "owner": { "name": "nikiteshjain19" },
+  "plugins": [
+    {
+      "name": "hivion",
+      "source": "./",
+      "description": "Hivion's workflow scaffold: seven agent skills, invoked as hivion:<skill>."
+    }
+  ]
+}
