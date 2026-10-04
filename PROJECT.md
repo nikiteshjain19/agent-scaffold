@@ -9,7 +9,7 @@ The project document for **this** repository. `CLAUDE.md` defines *how* we work;
 ## 1. Product
 
 - **Name:** agent-scaffold
-- **Purpose:** publish the workflow contract (`CLAUDE.md`) and the seven agent skills, as one
+- **Purpose:** publish the workflow contract (`CLAUDE.md`) and the eight agent skills, as one
   installable Claude Code plugin named `hivion`.
 - **Who it's for:** anyone who wants a disciplined ticket → branch → PR → review workflow that
   agents can run unattended.

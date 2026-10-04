@@ -1,6 +1,6 @@
 {
   "name": "hivion",
-  "description": "Hivion's agent workflow: a tool-agnostic ticket-to-merge discipline, and the seven skills that drive it: plan a feature, write issues, work the backlog, review a pull request, merge what is ready, and audit a codebase.",
+  "description": "Hivion's agent workflow: a tool-agnostic ticket-to-merge discipline, and the eight skills that drive it: adopt an existing project, plan a feature, write issues, work the backlog, review a pull request, merge what is ready, and audit a codebase.",
   "version": "0.1.0",
   "author": { "name": "nikiteshjain19" },
   "homepage": "https://github.com/nikiteshjain19/agent-scaffold",

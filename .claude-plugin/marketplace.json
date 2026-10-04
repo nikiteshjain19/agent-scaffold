@@ -5,7 +5,7 @@
     {
       "name": "hivion",
       "source": "./",
-      "description": "Hivion's workflow scaffold: seven agent skills, invoked as hivion:<skill>."
+      "description": "Hivion's workflow scaffold: eight agent skills, invoked as hivion:<skill>."
     }
   ]
 }
