@@ -121,6 +121,10 @@ last one. This session answers question 3. Print them at the top of the run, bef
    `pr-reviewer` skill is invocable by name in this session (`CLAUDE.md` §12). You can also dispatch
    a subagent to run it. If either is missing, the auto lane is **off** for the whole run.
 
+   **Match the name, not the exact string.** An entry listed as `<plugin>:pr-reviewer` is the
+   `pr-reviewer` skill, and it meets the first requirement (`CLAUDE.md` §12). Never call the skill
+   missing because its entry carries a prefix.
+
    **A PR whose verdict you were handed reads this question the second way.** A session that was
    handed a verdict does not need to dispatch one. The auto lane stays live for exactly those PRs.
    Keep the answer above for every other PR. Print which reading applied, and name the PRs it
