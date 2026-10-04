@@ -107,7 +107,7 @@ tier only, and nothing reaches that tier while no green signal exists.
 
 - **Max lanes:** 3 concurrent issues.
 - Two issues may share a lane group only if their declared file footprints do not intersect.
-- **Max cycles per run:** 3.
+- **Max cycles per run:** 5.
 - **Max repair rounds per pull request:** 3.
 
 ### Footprint enforcement
