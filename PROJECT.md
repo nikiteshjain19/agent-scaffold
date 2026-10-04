@@ -134,10 +134,43 @@ tier only.
 
 ### Enforcement mechanism — read this before trusting the gate
 
-**The gate is honoured by the merging agent, not by the server.** This repository is public, so
-GitHub rulesets and required status checks are available on the Free plan, but none is configured
-yet. Until one is, nothing server-side stops a red or unreviewed PR being merged. The `Markdown lint`
-check now exists to require, and #13 configures the ruleset that requires it.
+**The gate is half enforced by the server and half honoured by the merging agent.** Read both
+halves. A reader who believes the whole gate is enforced will trust an auto-merge that nothing
+checked.
+
+**Status: the ruleset is applied by the owner, by hand, after the PR for #13 merges.** An agent
+never creates or edits it (D-13). Until the owner applies it, nothing below is enforced, and the
+whole gate is only honoured. Confirm it is live before you rely on it:
+`gh api repos/nikiteshjain19/agent-scaffold/rules/branches/main`. An empty list means it is not
+applied.
+
+**Enforced by the server** — a GitHub ruleset on the default branch (`main`), with no bypass actors:
+
+- No direct push. Every change reaches `main` through a pull request.
+- No force-push.
+- No deletion of `main`.
+- No merge unless the `Markdown lint` check reported success on the PR's head commit. The check is
+  pinned to GitHub Actions, so a commit status with the same name does not satisfy it. A missing
+  check blocks the merge, exactly as escalation condition 2 reads it.
+
+**Not enforced: an approving review.** GitHub refuses a self-approval, so on a one-person repository
+that rule makes every PR unmergeable without an admin override (D-13). The independent reviewer here
+is the `pr-reviewer` skill, under escalation condition 6.
+
+**Still only honoured** — the server knows nothing about these. The merging agent reads and obeys
+each one itself:
+
+- the risk-list paths (escalation condition 1);
+- the footprint rule (condition 3);
+- a deleted, skipped or weakened test (condition 4);
+- the size threshold (condition 5);
+- the reviewer's verdict (condition 6);
+- a stale ticket, PR body or decision (condition 7);
+- the rule that an agent never merges its own PR;
+- the per-PR approval the escalation tier requires.
+
+A green, mergeable PR on GitHub therefore proves only the enforced half. It never means the PR may
+auto-merge.
 
 ## 5. Milestones / build sequence
 
