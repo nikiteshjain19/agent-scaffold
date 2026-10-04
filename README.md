@@ -103,3 +103,5 @@ Then tell your agent **"start new project"**. It runs the interview in `CLAUDE.m
 ## Licence
 
 MIT. See [LICENSE](LICENSE).
+
+#Seeded violation
