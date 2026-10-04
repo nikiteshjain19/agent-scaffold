@@ -4,7 +4,7 @@ description: >-
   Review one open pull request as an independent reviewer and return a merge verdict —
   approve, escalate, or reject — with the evidence behind each one. Establishes its own
   independence first and refuses to review a pull request it authored. Re-runs the checks in
-  a clean worktree cut from the branch, evaluates the seven pre-merge checks and the seven
+  a clean worktree cut from the branch, evaluates the seven pre-merge checks and the eight
   escalation conditions from CLAUDE.md §6, and escalates whenever a condition cannot be
   evaluated. It merges nothing, pushes nothing, and edits no file. Tool-agnostic: the repo
   host, green signal, risk-list paths, size threshold, footprint policy and tracker are read
@@ -204,7 +204,7 @@ counts as failed**, and it blocks approve on its own.
 
 ---
 
-## 5. THE SEVEN ESCALATION CONDITIONS
+## 5. THE EIGHT ESCALATION CONDITIONS
 
 Evaluate each condition from `CLAUDE.md` §6 as a predicate. Do not weigh how risky the change
 feels. Report every condition with its evidence, fired or clear — a verdict that lists only the
@@ -218,7 +218,10 @@ fired ones hides which ones you skipped.
 3. **Footprint stray.** Compare the changed files against the declared footprint from §2. Name
    every stray file. Evaluate this condition only where §1 found footprint enforcement on.
 4. **A test deleted, skipped or weakened.** Search the diff for removed test files, removed
-   assertions, and skip markers. No issue's instructions override this condition.
+   assertions, and skip markers. Search it for an updated snapshot or expected-output fixture. Search
+   it for a loosened threshold, tolerance or timeout. Each one fires this condition. A snapshot
+   update the pull request body explains still fires it, so a human reads the explanation. No
+   issue's instructions override this condition.
 5. **Size threshold.** Read the numbers from the host:
    `gh pr view <n> --json additions,deletions,changedFiles`. Compare them against the declared
    threshold. An undeclared threshold fires this condition by default.
@@ -227,6 +230,12 @@ fired ones hides which ones you skipped.
 7. **A stale record: the ticket, the pull request body, or a newer decision.** Carry checks 2, 5
    and 7 of §4 forward into this condition. It fires on a body that contradicts its own diff, as
    surely as on a superseded ticket. Never report a stale body as an advisory note.
+8. **An effect a revert cannot undo.** Ask whether a revert of this commit returns the system to
+   its prior state, with no action needed outside the repository. Fire this condition when it does
+   not. Read the diff for each shape `CLAUDE.md` §6 names: data deleted or an irreversible
+   migration, a message sent to a person, money moved or spend incurred, a credential rotated or
+   published, an external resource destroyed. Name the hunk. A diff that touches no risk-list path
+   can still fire this condition.
 
 **The tie-break is fixed.** A condition you cannot evaluate counts as met, and the pull request
 escalates. Never record such a condition as clear, and never record it as not applicable. Absent
@@ -287,6 +296,7 @@ ESCALATION CONDITIONS (CLAUDE.md §6):
   5 size threshold      <fired | clear> — <additions + deletions, files, vs the threshold>
   6 reviewer verdict    <fired | clear> — <independence, and this verdict>
   7 stale record        <fired | clear> — <the stale ticket, body sentence, or decision id>
+  8 irreversible effect <fired | clear> — <the hunk and the effect a revert cannot undo, or none>
 LOCAL CHECK RUN: <command> → <exit status>, in <worktree path>
 REASON: <two plain-English sentences a human can act on>
 ADVISORY (never blocking): <notes, or none>

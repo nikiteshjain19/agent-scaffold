@@ -22,7 +22,7 @@ you produce a wave of pull requests, drive each one to a finished state, present
 the user's answers into a merge, and then ask whether the cycle changed anything.
 
 You sequence other agents. You re-decide none of their rules. Lanes, waves, classification,
-conflict handling, the seven escalation conditions, the seven pre-merge checks, the repairable list,
+conflict handling, the eight escalation conditions, the seven pre-merge checks, the repairable list,
 the risk list and the size threshold each keep their owner.
 
 This skill removes two session boundaries, and it buys **sessions and finished work** rather than
