@@ -4,10 +4,11 @@ description: >-
   Turn a feature idea into a set of well-scoped, executable tracker issues. Researches
   first — the target repository, the existing backlog, external/library docs, and how
   well-written issues actually read — then clarifies, decomposes, and presents a plan you
-  approve BEFORE anything is filed. The issues it writes are specs `issue-loop` can
-  implement unattended. Tracker-agnostic: the tracker, label vocabulary, priority model,
-  dependency mechanism, and id format are read from PROJECT.md (GitHub Issues, Linear,
-  Jira, GitLab, …), never hard-coded. Use when the user says "create issues for this
+  approve BEFORE anything is filed. One issue the owner already approved takes a pre-approved
+  path that skips only the clarify round and the plan stop. The issues it writes are specs
+  `issue-loop` can implement unattended. Tracker-agnostic: the tracker, label vocabulary,
+  priority model, dependency mechanism, and id format are read from PROJECT.md (GitHub Issues,
+  Linear, Jira, GitLab, …), never hard-coded. Use when the user says "create issues for this
   feature", "write tickets for X", "break this down into issues", "file an issue for …",
   "turn this spec into a backlog", or similar.
 ---
@@ -25,7 +26,8 @@ Three properties define the job:
 - **Research before drafting.** Every file, function, endpoint, or library version you name must
   be one you actually looked at. Nothing invented, nothing assumed.
 - **Approval before filing.** You present a plan and stop. Not a single issue is created until
-  the user says go.
+  the user says go. The one exception is a single issue the owner already approved. It takes the
+  pre-approved path in §5, and its approval still comes before filing.
 - **Two readers, always.** Every issue is read by the **maintainer** (is this worth doing, is it
   scoped right, does it fit the roadmap?) and by the **implementer** (can I start right now
   without asking a question?). A draft that serves only one of them is not done.
@@ -320,8 +322,35 @@ Wrap the whole plan in `<plan>` tags. Inside, in this order:
 
 Then **STOP and wait**. Nothing is created until the user approves. If they revise one issue,
 re-print that one and re-ask; approval is per batch, and a batch changes when any member does.
+The pre-approved path below is the only exception to this stop.
+
+### Pre-approved path — one issue the owner already approved
+
+Take this path only when every condition holds:
+
+- The owner approved filing one specific issue, named by its problem and its scope.
+- The approval is in this session, or in a tracker comment by the owner.
+- The issue is one PR-sized change (§3). It needs no decomposition into several issues.
+- Research raises no question whose answer would change the issue.
+
+Treat a condition you cannot confirm as failed.
+
+**What it skips:** the §2 CLARIFY round, and the stop above. Nothing else.
+
+**What it still runs:** §0, all of §1, §3, the full §4 anatomy, the §7 quality bar, all of §6, and
+FINAL OUTPUT. Print the plan as §5 describes. Then file the issue without waiting.
+
+**What does not count as approval:** silence, approval of a different issue, approval of a batch,
+or a general "keep going". There is no standing or blanket approval. Each issue needs its own
+go-ahead, as `CLAUDE.md` §6, approval gate rule 1, requires for each merge.
+
+**Record the approval** in the issue's Context **Source** line. Name who approved, and when.
+
+**When any condition fails**, fall back to the stop above. Present the plan, and wait for approval.
 
 ## 6. FILE THE ISSUES — only after approval
+
+Approval comes from the §5 stop, or from the owner's earlier approval on the pre-approved path (§5).
 
 1. Create in **dependency order** — blockers first, so their ids exist to be referenced.
 2. Apply **labels, milestone, and priority** from the §0 vocabulary — never invent a label.
@@ -366,7 +395,8 @@ Before §5, re-read each draft as both readers (maintainer, then implementer) an
 
 ## 8. HARD RULES
 
-- **Never create, edit, or close an issue before explicit approval** (§5).
+- **Never create, edit, or close an issue before explicit approval.** It comes from the §5 stop,
+  or from the owner on the pre-approved path (§5).
 - **Never invent codebase facts.** Research it, or write the instruction generically.
 - **Never file an artifact ahead of its consumer** (CLAUDE.md §5.3).
 - **Never paste secrets** into an issue — not even redacted "examples" (CLAUDE.md §8).

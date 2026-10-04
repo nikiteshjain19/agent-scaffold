@@ -53,7 +53,7 @@ Read `PROJECT.md` (and any architecture doc it points to) and resolve:
   a doc or in this skill as ground truth — derive every threshold, price, tier rule, and stage
   count from the code** (see the "no numbers" rule below).
 - **Issue tracker** — so you can file findings as tickets and recognize ticket annotations in
-  code/comments (e.g. `ABC-123`).
+  code/comments (e.g. `ABC-123`). File each ticket through the `issue-writer` skill.
 - **Repository map** — build a *starting index* of entry points, pipelines, guardrails, billing,
   gated resources, observability, auth/session, and schema/migrations. **This is a starting
   point, not a scope boundary** — if a file participates in a path you make a claim about, read it.
@@ -261,7 +261,8 @@ in the decision log that the code contradicts is a finding.
    - **Remediation:** production-ready snippet or concrete refactor pattern
    - **Status:** broken today / latent — and **verified (name the query)** vs. inferred
 5. **Immediate action plan:** prioritized checklist, weighted toward the project's highest-stakes
-   properties (cost control, entitlement/access correctness). File each as a tracker ticket.
+   properties (cost control, entitlement/access correctness). File each as a tracker ticket,
+   through the `issue-writer` skill.
 6. **Coverage declaration (R5):** what you did not read, and why.
 
 Anchor every finding to real file paths and line ranges. **If you cannot confirm a control exists,

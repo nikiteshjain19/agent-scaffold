@@ -87,7 +87,8 @@ Then generate, commit (via a ticket + PR like any other change), and keep mainta
   these sections by name, so a renamed section reads as a missing one.
 - **`decisions.d/`** — the decision log, one file per decision, seeded from any decisions made
   during the interview (see §7 for format). Read it by reading the directory.
-- Initial milestones and tickets in the tracker, with dependencies linked (§5).
+- Initial milestones and tickets in the tracker, with dependencies linked (§5). File each ticket
+  with the `issue-writer` skill (§2).
 
 **Hard rule — no green signal, no auto-merge tier.** A project whose Merge gate section declares
 no green signal has **no** automated merge path: every PR stays human-gated until a real check
@@ -119,9 +120,10 @@ decision in `decisions.d/` so it is visible and reversible.
 
 ## 2. Ticket workflow
 
-- **Every piece of work has a ticket** — features, bugs, refactors, docs, config. If asked to
-  do something without one, create the ticket first (title, description, acceptance criteria),
-  then start.
+- **Every piece of work has a ticket** — features, bugs, refactors, docs, config. Create the
+  ticket before you start work. Create every ticket with the `issue-writer` skill. Never write a
+  ticket by hand. The loop skills read only the headings that skill writes. When this session
+  cannot invoke the skill (§12), stop and ask the user. Never fall back to a hand-written ticket.
 - **Mark the ticket "In Progress" the moment work starts** — before the first commit, not
   after. Don't batch status updates to the end.
 - **Mark it "Done" only when the PR is merged** (or, for non-code tickets, when the deliverable
@@ -165,7 +167,8 @@ Before writing any code, an agent picking up a ticket must, in order:
    existing design rather than inventing a parallel one.
 6. **Confirm the consumer exists** for anything you're about to build (§5, rule 3).
 7. **Plan briefly, then implement** — smallest change that satisfies the acceptance criteria.
-   Scope creep goes in a new ticket, not the current branch. Justify every line you write (below).
+   Scope creep goes in a new ticket, not the current branch. File that ticket with the
+   `issue-writer` skill (§2). Justify every line you write (below).
 8. **Verify like a skeptic**: run build/lint/tests; for changes applied out-of-band (DB
    migrations, dashboard config, DNS, third-party settings), verify the live system actually
    reflects them — a file existing in the repo does NOT mean the change exists in production.
@@ -225,7 +228,8 @@ no consumer — that later work has to detect and remove. That is pure waste, tw
    confirm scope before proceeding.
 4. **Link dependencies at ticket-creation time.** If one story produces infrastructure another
    consumes, link them blocks/blocked-by and put both in the same (or correctly ordered)
-   milestone. No free-floating infra tickets.
+   milestone. No free-floating infra tickets. File the ticket with the `issue-writer` skill (§2).
+   Its Dependencies section records the links.
 5. **When in doubt about order or consumers, ask before making schema changes.** Wrong-order
    schema changes are expensive to unwind.
 6. **Name every document your change makes false.** Changes to the commands, the CI jobs, the file
