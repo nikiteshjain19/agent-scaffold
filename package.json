@@ -1,0 +1,13 @@
+{
+  "name": "agent-scaffold",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Lint tooling for the agent-scaffold documents. Nothing here is published to npm.",
+  "license": "MIT",
+  "scripts": {
+    "lint": "markdownlint-cli2"
+  },
+  "devDependencies": {
+    "markdownlint-cli2": "0.23.3"
+  }
+}

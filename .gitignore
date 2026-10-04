@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# OS cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor cruft
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
