@@ -138,11 +138,11 @@ tier only.
 halves. A reader who believes the whole gate is enforced will trust an auto-merge that nothing
 checked.
 
-**Status: the ruleset is applied by the owner, by hand, after the PR for #13 merges.** An agent
-never creates or edits it (D-13). Until the owner applies it, nothing below is enforced, and the
-whole gate is only honoured. Confirm it is live before you rely on it:
-`gh api repos/nikiteshjain19/agent-scaffold/rules/branches/main`. An empty list means it is not
-applied.
+**Status: the ruleset `main — merge gate` is active on `main`.** The owner applied it on
+2026-10-04. An agent never creates or edits it (D-13). Confirm it is live before you rely on it:
+`gh api repos/nikiteshjain19/agent-scaffold/rules/branches/main`. A live ruleset returns four rule
+types: `pull_request`, `required_status_checks`, `non_fast_forward` and `deletion`. An empty list
+means it is not applied.
 
 **Enforced by the server** — a GitHub ruleset on the default branch (`main`), with no bypass actors:
 
