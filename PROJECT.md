@@ -30,8 +30,8 @@ Local convenience tooling belongs in a private repository, not here.
 | **Base / default branch** | `main` |
 | **Branch naming** | `type/issue-id-short-desc`, e.g. `feat/12-plugin-hook` |
 | **Merge strategy** | Squash and delete the branch — `gh pr merge <n> --squash --delete-branch` |
-| **Who merges** | A human, for now. This repo declares no green signal, so no PR reaches the auto-merge tier (`CLAUDE.md` §0). An agent may run a merge only after the user approves that specific PR, and never its own. |
-| **CI** | None yet. See "Build / lint / test commands". |
+| **Who merges** | A human, for nearly every PR. The risk list below covers almost every file, so almost every PR escalates. An agent may run a merge only after the user approves that specific PR, and never its own. |
+| **CI** | GitHub Actions — `.github/workflows/lint.yml`, one job named `Markdown lint`. See "Build / lint / test commands". |
 | **Database / payments / LLM APIs** | None. `CLAUDE.md` §10 does not apply, and the database steps in the skills are reported not applicable. |
 
 ### Tracker mapping (what the loop skills read)
@@ -56,15 +56,18 @@ Local convenience tooling belongs in a private repository, not here.
 ## 3. Build / lint / test commands
 
 - **Build:** none.
-- **Lint:** none yet.
-- **Test:** none yet.
+- **Lint:** `npm run lint` — runs `markdownlint-cli2` over every `*.md` file, configured by
+  `.markdownlint-cli2.yaml`.
+- **Test:** none.
 
-**This repo has no pre-PR gate, and that has a consequence stated plainly:** with no green signal,
-`CLAUDE.md` §0 gives this project **no auto-merge tier**. Every PR waits for a human, whatever it
-touches.
+**Pre-PR gate:** `npm ci && npm run lint`. Run it before you open a PR, and again after any rebase.
+Open the PR only when it passes.
 
-Markdown lint and a link check are the obvious first additions. Add the commands here in the same PR
-that adds the check, and log the toolchain addition in `decisions.d/`.
+`markdownlint-cli2` is the only dependency. It is a dev dependency, pinned to an exact version, and
+`package-lock.json` is committed, so `npm ci` installs the same tree everywhere. Node 22 or later is
+required.
+
+A link check is not part of the gate. Add one in its own issue if the README grows.
 
 Per `CLAUDE.md` §11 rule 4, a docs-only change needs no new test. State the exemption in the PR body.
 
@@ -72,8 +75,18 @@ Per `CLAUDE.md` §11 rule 4, a docs-only change needs no new test. State the exe
 
 ### Green signal
 
-**None declared.** No check reports on a PR here yet. Absence of checks is **red**, never "nothing
-to fail", so nothing merges unattended.
+**The `Markdown lint` job**, from `.github/workflows/lint.yml`. It runs on every pull request to
+`main` and on every push to `main`. It runs `npm ci`, then `npm run lint`. Green means that job
+reported success on the PR's head commit. Read it with `gh pr checks <n>`.
+
+**What a green run proves:** every Markdown file in the repository passes the rules in
+`.markdownlint-cli2.yaml`, and the pinned toolchain installs cleanly.
+
+**What a green run does not prove:** that a document is correct, that two documents agree, that a
+link resolves, or that a skill behaves as its text says. It checks form, never meaning. That is why
+the risk list below still sends nearly every PR to a human.
+
+Absence of the check is **red**, never "nothing to fail".
 
 ### Risk-list paths — always human, regardless of a green signal
 
@@ -91,17 +104,22 @@ skills/**
 .claude-plugin/**
 .github/**
 LICENSE
+package.json
+package-lock.json
 ```
 
 That covers nearly every file here, and that is correct: this project's product is its governance,
 so almost every change is a governance change. A consuming application repo will declare a far
 narrower list.
 
+`package.json` and `package-lock.json` are listed because a dependency change is exactly what
+escalation condition 1 exists for.
+
 ### Size threshold
 
 A PR escalates when its diff exceeds **50 changed lines** or **3 changed files**. Read both from the
 host: `gh pr view <n> --json additions,deletions,changedFiles`. The threshold bounds the auto-merge
-tier only, and nothing reaches that tier while no green signal exists.
+tier only.
 
 ### Parallelism
 
@@ -118,8 +136,8 @@ tier only, and nothing reaches that tier while no green signal exists.
 
 **The gate is honoured by the merging agent, not by the server.** This repository is public, so
 GitHub rulesets and required status checks are available on the Free plan, but none is configured
-yet. Until one is, nothing server-side stops a red or unreviewed PR being merged. Configuring a
-ruleset is worth doing once a check exists to require.
+yet. Until one is, nothing server-side stops a red or unreviewed PR being merged. The `Markdown lint`
+check now exists to require, and #13 configures the ruleset that requires it.
 
 ## 5. Milestones / build sequence
 
