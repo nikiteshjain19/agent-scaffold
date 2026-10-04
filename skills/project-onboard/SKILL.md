@@ -315,7 +315,7 @@ autonomy.
 | Field | Default when unresolved | What it causes |
 | --- | --- | --- |
 | Green signal | none declared | No auto-merge tier (`CLAUDE.md` §0). |
-| Risk-list paths | `*`, then the §0 always-protected list, then every risky path the survey found | Every pull request escalates. |
+| Risk-list paths | `*`, then the §0 "Always risk-listed" list, then every risky path the survey found | Every pull request escalates. |
 | Size threshold | none declared | Escalation condition 5 fires on every pull request. |
 | Footprint enforcement | on | A stray escalates. |
 | Enforcement mechanism | honoured only | No claim the host enforces anything the survey did not read. |
