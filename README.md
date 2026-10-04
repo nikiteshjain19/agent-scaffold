@@ -13,7 +13,8 @@ any other tool.
   the two-tier merge gate, the testing policy, secret handling, and the interview that sets a new
   project up.
 - **[`STYLE.md`](STYLE.md)** — how to write a document an agent executes rather than interprets.
-- **`skills/`** — seven skills, in the order they run:
+- **`skills/`** — eight skills, in the order they run:
+  - `project-onboard` — adopt the workflow into a project that already has code, a backlog or CI.
   - `feature-plan` — turn a feature request into an approved design before any issue is filed.
   - `issue-writer` — turn an idea, or an approved plan, into executable tracker issues.
   - `issue-loop` — work the backlog unattended, one lane per issue, one PR per lane.
@@ -89,7 +90,8 @@ Give your repository the workflow in whichever way suits it:
   home-directory path resolves in local sessions only, so a cloud session sees nothing.
 
 Then tell your agent **"start new project"**. It runs the interview in `CLAUDE.md` §0 and writes the
-`PROJECT.md` every skill reads.
+`PROJECT.md` every skill reads. For a project that already has code, a backlog or CI, run the
+`project-onboard` skill instead.
 
 ## What a project owes the workflow
 
