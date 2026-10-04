@@ -655,6 +655,13 @@ it by name in this session. Read that from the session's own list of available s
 rule that turns on a missing skill — §6 escalation condition 6 — then fires on every PR forever,
 which looks like a correct fail-closed result and is not one.
 
+**A namespaced entry is the skill it names.** A plugin installs each skill under a prefix, so the
+session lists it as `<plugin>:<name>`. That entry is the skill `<name>`. It satisfies every citation
+of `<name>`, in every document. The prefix belongs to the installer, and is not part of the skill's
+identity. Keep writing the bare name in documents: the bare name stays the address. Never conclude
+a skill is missing because the session lists it only with a prefix. That mistake fires §6 escalation
+condition 6 on every PR, exactly as the path mistake does.
+
 ---
 
 ## 13. Escalation queue — collect the questions, then ask once
