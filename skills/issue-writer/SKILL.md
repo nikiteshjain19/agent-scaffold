@@ -130,7 +130,7 @@ Run all four. For a large feature, dispatch one subagent per track and have each
 - **"No document is affected" is a valid answer.** Reach it deliberately, never by silence. State
   it in the research brief and repeat it in the plan's callouts (§5, item 7). An unanswered
   question and a checked "none" look identical in a draft, and only one of them is research.
-- **Read the plan file `docs/plans/<slug>.md` when this feature has one.** `feature-plan` (D-19)
+- **Read the plan file `docs/plans/<slug>.md` when this feature has one.** `feature-plan` (private D-19)
   writes it there under a slug named for the feature. List that directory before you conclude no
   plan exists. The plan already chose the design, froze the contracts, and scheduled the units
   into waves — treat it as the design of record. Carry its wave, footprint, and contracts into

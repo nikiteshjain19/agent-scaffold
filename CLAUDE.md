@@ -74,7 +74,7 @@ topic at a time, covering:
    review/merge flow reads exactly this to decide what it may merge unattended.
 
 **The default risk list — propose it in topic 7, in two parts.** Without a default, a project
-protects either too little or too much (D-12).
+protects either too little or too much (scaffold D-12).
 
 **Always risk-listed, in every project** — the files that decide how agents behave, and the record
 of why:
@@ -116,7 +116,7 @@ Then generate, commit (via a ticket + PR like any other change), and keep mainta
   which repo, which commands), milestones, metrics, and constraints. **Cite a `PROJECT.md`
   section by its name, never by its number** — every project generates its own and renumbers it,
   so a number in a skill or a doc rots. `CLAUDE.md` is the exception: its numbering is fixed by
-  this scaffold, so keep citing it as `§N` (D-37).
+  this scaffold, so keep citing it as `§N` (private D-37).
   **Use the section names the skills read.** Name them "Toolchain", "Build / lint / test
   commands" and "Merge gate", with a "Parallelism" section inside "Merge gate". Skills find
   these sections by name, so a renamed section reads as a missing one.
@@ -296,7 +296,7 @@ this review (the implementing agent, or preferably a separate reviewing agent) m
 
 1. **Correctness review** — read the full diff critically: logic, edge cases, error handling,
    security, tests actually asserting the behavior. Check the diff for the seven shapes in §4,
-   "Justify every line you write". A line matching one fails this check (D-11).
+   "Justify every line you write". A line matching one fails this check (scaffold D-11).
 2. **Decision freshness** — re-read the decision log (`decisions.d/`, §7) for every entry
    dated after this PR's branch was created. If any decision changed something this PR touches
    (pricing, schema, naming, architecture, scope), the PR is **stale**: update it to match the
@@ -331,7 +331,8 @@ record in both tiers. Post it whether or not the PR then merges.
 **The record is the only durable evidence that the review happened**: §9 refuses a work log, and §13
 forbids committing the escalation queue. A missing record and a record in the body read the same way
 to a later reader — as a review that never ran. The body carries a second obligation already, because
-the body-freshness bullet above makes it track the diff, and one field cannot hold both (D-152).
+the body-freshness bullet above makes it track the diff, and one field cannot hold both
+(private D-152).
 
 ### The gate has two tiers
 
@@ -387,7 +388,7 @@ A PR escalates if **any** of these hold:
    - an external resource destroyed — a bucket, a queue, a DNS record, or an account.
 
    This condition reads the effect, never the path. It fires even when no risk-list path is touched
-   (D-12).
+   (scaffold D-12).
 
 **An escalated PR merges only under the approval gate.** Agents may perform the merge, but only
 under all of these:
@@ -399,13 +400,13 @@ under all of these:
 2. **Not your own PR.** Merging is done by the review/merge flow (the `pr-merge-loop` skill, or a
    separate reviewing agent), never by the agent that authored the branch. An implementing agent
    opens the PR and stops. **A mechanical resolution commit pushed under rule 6 below does not make
-   the merging agent the PR's author.** The user ratified that on 2026-07-31 (D-77). The exemption
-   covers that resolution commit and nothing else. Escalate the PR whenever you cannot tell your
-   resolution commit apart from other work you wrote on that branch. An independent reviewer must
-   still return a fresh approve on the resolved head SHA. **A repair commit pushed under the repair
-   block below is not covered by that exemption, and it does make you the author** (D-157). The two
-   commits are deliberately treated differently: a mechanical resolution carries no intent of yours,
-   and a repair is work you wrote.
+   the merging agent the PR's author.** The user ratified that on 2026-07-31 (private D-77). The
+   exemption covers that resolution commit and nothing else. Escalate the PR whenever you cannot
+   tell your resolution commit apart from other work you wrote on that branch. An independent
+   reviewer must still return a fresh approve on the resolved head SHA. **A repair commit pushed
+   under the repair block below is not covered by that exemption, and it does make you the author**
+   (private D-157). The two commits are deliberately treated differently: a mechanical resolution
+   carries no intent of yours, and a repair is work you wrote.
 3. **Approval follows a presented review, and a question the user can answer.** Before asking,
    present a plain-language summary of what the PR changes and the outcome of the seven pre-merge
    checks above. **Plain language governs every finding, not only the summary.** A condition
@@ -436,7 +437,7 @@ and handing the PR back to its author costs a whole session for a fix an agent c
 that found it. The merging agent may push repair commits to a PR branch instead. Repair only
 a defect on the first list. Never repair anything on the second. **Repair every repairable finding
 you find, in as many passes as it takes** — a half-repaired record is worse than an unrepaired one,
-because the passages you fixed make the ones you missed read as checked (D-168).
+because the passages you fixed make the ones you missed read as checked (private D-168).
 
 **Repairable — the PR is simply wrong until someone fixes it:**
 
@@ -469,7 +470,7 @@ repaired it. A later session that did not write the repair reviews it as part of
 **A repair record escalates a PR only when the repairer is the merger.** State the one condition
 plainly: the merging agent wrote no commit on this branch. A merging agent that wrote the repair
 escalates that PR, in this run and in every later one. The record alone does not escalate a PR whose
-repair the merging agent did not write (D-163).
+repair the merging agent did not write (private D-163).
 
 **Verify these three, and assume none of them.** Each is already required elsewhere, so the
 conditional form adds no new bar:
@@ -568,20 +569,34 @@ branch.
   **Two entries must never claim one id.** That is an obligation on the project, not on a tool.
   Enforce it however the project likes — refusing to assemble a log that holds a duplicate id is
   one way.
-- **Legacy ids stay as they are.** Entries numbered before this rule (`D-001`, `D-002`, …) keep
-  those ids: §7 is append-only, so renumbering them is forbidden. The id vocabulary is therefore
-  permanently mixed — sequential for the early entries, issue-derived after. **That is correct,
+- **Legacy ids stay as they are.** A log may hold entries a counter numbered before this rule.
+  Those entries keep their ids. Never renumber one: §7 is append-only. Such a log's id vocabulary
+  is permanently mixed — sequential for the early entries, issue-derived after. **That is correct,
   not a defect to tidy up.**
+- **A citation names its log.** An id alone does not say which log holds the entry, and two logs
+  can each hold an entry with the same id. Write every citation in one of three forms:
+  - **`D-N`** — an entry in the reading repository's own `decisions.d/`.
+  - **`scaffold D-N`** — an entry in the scaffold's public log. That log is the `decisions.d/` of
+    the repository that publishes `CLAUDE.md` and the skills.
+  - **`private D-N`** — an entry in the private log of the repository the scaffold grew in. No
+    reader outside that repository can open it.
+
+  `CLAUDE.md`, `STYLE.md` and every skill travel to every consuming repository. Never write a bare
+  `D-N` in them. A bare id there names the consumer's own entry instead. In the scaffold's own
+  repository, `D-N` and `scaffold D-N` name the same log. **A marked citation is provenance
+  only.** Make the sentence around it state everything the reader needs. Never make an instruction
+  depend on opening the entry.
 - **Format per entry** — the file opens with a level-1 heading so it is a valid standalone
-  document. An assembler that joins entries into one document demotes that heading to level 2:
+  document. An assembler that joins entries into one document demotes that heading to level 2.
+  Each `<…>` below is a placeholder:
 
   ```markdown
-  # D-42 — 2026-07-19 — Short decision title
+  # D-<N> — <YYYY-MM-DD> — <short decision title>
 
   - **Decision:** what was decided, in one or two sentences.
   - **Context:** why (the alternative considered, the trigger).
-  - **Supersedes:** D-017 (if applicable — and add "Superseded by D-42" to D-017; never delete entries)
-  - **Corrects:** D-018 (if applicable — and add "Corrected by D-42" to D-018; never delete entries)
+  - **Supersedes:** D-<S> (if applicable — and add "Superseded by D-<N>" to D-<S>; never delete entries)
+  - **Corrects:** D-<C> (if applicable — and add "Corrected by D-<N>" to D-<C>; never delete entries)
   - **Affects:** areas/tickets/PRs this touches (e.g. pricing pages, ABC-45, PR #12)
   ```
 
@@ -601,8 +616,8 @@ branch.
   one-file-per-decision layout removes the *mechanical* collision (two unrelated decisions fighting
   over one file); it deliberately does not remove this one.
   **Name the earlier entry's file in the issue's declared file footprint** whenever you write
-  either relation. D-70 could not write its back-reference, because that file sat outside its
-  footprint.
+  either relation. One entry, private D-70, could not write its back-reference, because that
+  file sat outside its footprint.
 - **Who reads it:** every agent, at two moments — before implementing a ticket (§4.4) and
   during pre-merge review (§6.2).
 - **Sweep on change:** when a new decision lands, briefly scan open tickets and open PRs for
@@ -646,7 +661,7 @@ sentence to 20 words or fewer, and an explanatory sentence to 25. Give each sent
 instruction, in the imperative ("Run the tests", not "the tests should be run"). Use one term per
 concept — never alternate `issue` and `ticket`. The style is required for instruction prose,
 encouraged for descriptive prose, and exempt for decision entries, which exist to argue. Read
-[`STYLE.md`](STYLE.md) before you write or edit a document; nothing enforces it (D-29).
+[`STYLE.md`](STYLE.md) before you write or edit a document; nothing enforces it (private D-29).
 
 ## 10. Spend guardrails (projects that call paid APIs)
 
