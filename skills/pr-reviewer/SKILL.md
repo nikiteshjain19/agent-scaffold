@@ -53,7 +53,7 @@ Run this phase before you read the diff. A reviewer who is not independent has n
 1. Record the pull request's head commit SHA: `gh pr view <n> --json headRefOid`. Read it from the
    host. Never take it from the invocation.
 2. Name the pull request's author: `gh pr view <n> --json author,headRefName`.
-3. Name every commit author on the branch:
+3. Fetch first: `git fetch origin`. Then name every commit author on the branch:
    `git log origin/<BASE>..<SHA> --format='%an <%ae>'`, with the SHA from step 1.
 4. Ask yourself the question directly. Did you write any commit on this branch?
 5. Include earlier sessions in that answer. A branch you wrote yesterday is still yours.
