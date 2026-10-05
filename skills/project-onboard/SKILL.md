@@ -78,12 +78,10 @@ the project's own `CLAUDE.md`, if it has one. Then check two facts, without open
 1. **Does `PROJECT.md` exist?** List the repository root to find out. Never open the file yet.
    If it exists, STOP. Ask the owner whether to replace it. This skill writes a first `PROJECT.md`,
    never a silent second one.
-2. **Does the repository have history beyond its first commit?** Count the commits. Read no diff.
-   A repository with no commit beyond its first is a new project. Run `CLAUDE.md` §0 for it
-   instead, and say why.
-
-When the commit count disagrees with how the owner described the project, ask the owner which path
-to take. Never pick the new-project path by default.
+2. **Is the project existing, by `CLAUDE.md` §0's routing test?** Run the test §0 states under
+   "The test that chooses". Never restate that test here, so the two cannot drift. Read no diff.
+   If the test says the project is new, run `CLAUDE.md` §0 instead, and say why. If §0 calls the
+   result ambiguous, ask the owner which path to take. Never pick the new-project path by default.
 
 ---
 

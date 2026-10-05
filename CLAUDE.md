@@ -24,9 +24,11 @@ question. A missing `PROJECT.md` means only that the workflow is not adopted yet
 condition holds. It is new when neither holds.
 
 - **The repository has a commit that is not its own scaffolding.** List every path the history
-  touches: `git log --format= --name-only | sort -u`. The condition holds when any path is outside
-  the scaffolding set. That set is `CLAUDE.md`, `STYLE.md`, `PROJECT.md`, `README.md`, `LICENSE`,
-  `.gitignore`, `decisions.d/` and `.claude/`. A repository with no commit yet does not meet it.
+  touches: `git log --format= --name-only | sort -u`. Ignore any empty line in the output. The
+  condition holds when any path is outside the scaffolding set. That set is `CLAUDE.md`,
+  `STYLE.md`, `PROJECT.md`, `README.md`, `LICENSE`, `.gitignore`, `decisions.d/` and `.claude/`.
+  A repository with no commit yet does not meet it. There the command fails, and that failure
+  reads as "not met", never as unreadable history.
 - **The tracker holds an open issue.** Ask the owner which tracker holds the project's issues.
   Count its open issues. The condition holds when the count is above zero. It does not hold when
   the owner names no tracker.
