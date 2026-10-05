@@ -58,7 +58,8 @@ Local convenience tooling belongs in a private repository, not here.
 
 - **Build:** none.
 - **Lint:** `npm run lint` — runs `markdownlint-cli2` over every `*.md` file, configured by
-  `.markdownlint-cli2.yaml`.
+  `.markdownlint-cli2.yaml`. It then runs the duplicate-id check over `decisions.d/`,
+  `.github/scripts/check-decision-ids.mjs` (D-51).
 - **Test:** none.
 
 **Pre-PR gate:** `npm ci && npm run lint`. Run it before you open a PR. Run it again after you
@@ -82,7 +83,8 @@ Per `CLAUDE.md` §11 rule 4, a docs-only change needs no new test. State the exe
 reported success on the PR's head commit. Read it with `gh pr checks <n>`.
 
 **What a green run proves:** every Markdown file in the repository passes the rules in
-`.markdownlint-cli2.yaml`, and the pinned toolchain installs cleanly.
+`.markdownlint-cli2.yaml`, and the pinned toolchain installs cleanly. It also proves that every
+entry in `decisions.d/` opens its heading with its own id, and that no two entries claim one id.
 
 **What a green run does not prove:** that a document is correct, that two documents agree, that a
 link resolves, or that a skill behaves as its text says. It checks form, never meaning.
