@@ -162,7 +162,7 @@ Run these steps in order.
 2. Read the verdict block in the invocation under A RELAYED VERDICT, and apply its four rules. Dispatch
    no reviewer. Stop and report when no verdict block is present, because condition 6 is then met.
 3. Print one line that names this mode and the steps it skips: SETUP's batch listing and PROBE.
-4. List the open PRs once, read-only: `gh pr list --state open --json number,baseRefName,headRefName`.
+4. List the open PRs once, read-only: `gh pr list --state open --limit 1000 --json number,baseRefName,headRefName`.
    Hold this PR, and merge nothing, when one of these three checks finds a hit.
    - **A stacked child.** This PR's base is another open PR's head branch. Hold this PR under
      STACKED PAIRS.
