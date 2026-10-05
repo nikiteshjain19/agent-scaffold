@@ -193,7 +193,7 @@ the PRs. This loop reads PRs before it reads tickets, so a ticket relation resol
    base to BASE: `gh pr edit <num> --base <BASE>`. Read the result of that call.
 5. **Never rebase a child, and never force-push one.** A retarget changes the PR's base, and it
    changes no commit. Item 3 is what makes that enough, so a stacked child needs no rebase and
-   D-77 stands untouched.
+   the no-force-push rule (private D-77) stands untouched.
 6. **Re-run the project's checks on the retargeted child. Read the results yourself.** The child's
    diff is now measured against BASE, so the earlier run proves nothing about it.
 7. **Re-run CLASSIFY for the child, on its current head SHA.** Its base moved, so the previous
@@ -380,7 +380,7 @@ skip the phase. The threshold is **2**, and it is the smallest queue that holds 
 A semantic conflict, a duplicate, an ordering hazard and a file-level overlap are all relations
 between two PRs. One PR has no pair, so those steps find nothing by arithmetic. At two open PRs
 they run in full, because PROBE is the only detector for a semantic conflict between PRs that
-touch no common file (D-26 ruling (c)).
+touch no common file (private D-26, ruling (c)).
 
 **Steps 1, 2 and 4 are per-PR work, so they never degenerate.** Step 1 reads each diff, and
 CLASSIFY and the review card need those diffs at every queue size. Step 2 writes each PR's own risk
@@ -674,7 +674,7 @@ The diff changed, so nothing granted before the resolution still applies.
 
 - **A human approval lapses** (`CLAUDE.md` §6, approval-gate rule 4). Re-present the review card,
   and ask again for this PR.
-- **The reviewer's verdict lapses.** It belonged to the previous head SHA (D-26).
+- **The reviewer's verdict lapses.** It belonged to the previous head SHA (private D-26).
 - **The classification lapses.** Re-run CLASSIFY against the resolved head SHA.
 
 **In the auto lane, a resolved PR never merges on a pre-resolution verdict.** The lane re-invokes
@@ -702,8 +702,8 @@ commits on that branch.
 ```text
 ASK — In `CLAUDE.md`, should a stale PR body escalate the PR, or only be reported?
 
-  A) "the branch wins"  (recommended — the branch is the newer decision, and D-80
-     ruled that a stale body escalates)
+  A) "the branch wins"  (recommended — the branch is the newer decision, and private
+     D-80 ruled that a stale body escalates)
      → I tell the author to take the branch's wording, and the PR comes back for review.
   B) "main wins"
      → I tell the author to drop that hunk and keep what is on the default branch.
@@ -985,7 +985,7 @@ learns what merged, rather than which commit it landed on.
 
 **An auto-merged PR is reported in plain English, exactly as an escalated one is.** Nobody watched
 this merge happen, so this report is the only account of it. The PLAIN-LANGUAGE RULE covers the
-report, as it covers every other line you present (D-96).
+report, as it covers every other line you present (private D-96).
 
 **The verdict expires when the diff changes.** It belongs to the head SHA the reviewer read. Treat
 a new commit, a rebase, or a BASE move that changes what would land exactly as `CLAUDE.md` §6
@@ -1022,7 +1022,7 @@ safety (`CLAUDE.md` §6).
 
 Your caller may hand you a verdict it obtained itself. Accept that verdict, and dispatch no
 reviewer. The block is the verdict the `pr-reviewer` skill returns, unchanged. That skill's RETURN
-THE VERDICT section owns the shape (D-5). The block arrives like this:
+THE VERDICT section owns the shape (scaffold D-5). The block arrives like this:
 
 ```text
 VERDICT       <approve | escalate | reject>
@@ -1056,8 +1056,8 @@ Read a relayed verdict under these four rules, in order.
 **A relayed verdict is evidence, and an unreadable field is absent evidence.** The fail-closed bias
 governs it like every other input.
 
-**Relaying moves who dispatches the reviewer, and nothing else** (D-155). The verdict still comes
-from a separately dispatched agent. A caller that produced the branch cannot supply one.
+**Relaying moves who dispatches the reviewer, and nothing else** (private D-155). The verdict
+still comes from a separately dispatched agent. A caller that produced the branch cannot supply one.
 
 ## ESCALATE LANE — FOR EACH PR, in the approved order
 
@@ -1078,7 +1078,7 @@ next unlocked PR until the user rules. (See LOCK RESOLUTION.)
 ```text
 ASK — #133 and #117 undo each other. Which one should the project keep?
 
-  A) "#133 wins"  (recommended — it is the newer change, and it matches D-70)
+  A) "#133 wins"  (recommended — it is the newer change, and it matches private D-70)
      → I review #133 the normal way and bring you a card for it. #117 stays open,
        untouched, until you say what to do with it.
   B) "#117 wins"
@@ -1324,11 +1324,11 @@ to "wait" promises an action and delivers silence.
   update for THIS PR.
   a. **Check authorship before anything else.** Stop here if you wrote any commit on this branch,
      other than a mechanical resolution commit pushed under CONFLICT. **A repair commit pushed
-     under REPAIR stops you here too** — it is your work, and D-77's exemption does not reach it.
-     Say that you cannot merge your own work, and that the user must merge it by hand or hand it to
-     another session. **An approval never overrides this** (`CLAUDE.md` §6). Removing the merge
-     option from a card removed the invitation, not this path — guard the path here, where the
-     merge actually happens.
+     under REPAIR stops you here too** — it is your work, and the resolution-commit exemption
+     (private D-77) does not reach it. Say that you cannot merge your own work, and that the user
+     must merge it by hand or hand it to another session. **An approval never overrides this**
+     (`CLAUDE.md` §6). Removing the merge option from a card removed the invitation, not this path
+     — guard the path here, where the merge actually happens.
   b. **Stop here if this PR is a stacked child whose parent is still open** (STACKED PAIRS). Say
      the child waits on its parent, name that parent by number, and merge nothing. An approval
      never releases this hold.
@@ -1393,7 +1393,7 @@ picked up now." A bare list of ids and labels is a log line, not a report (PLAIN
 **Why this step exists.** A stale signal is not untidy — the loop that schedules work filters on
 exactly that signal, so it hides an eligible ticket indefinitely and the backlog looks emptier
 than it is. It happened four times in two days in the repository that publishes this skill, and a
-human found all four (D-80).
+human found all four (private D-80).
 
 ## LOCK RESOLUTION (when the user rules on a locked pair/group)
 
@@ -1547,9 +1547,9 @@ states which of the two situations applies. Read that field in CONFIG and report
 - **Never repair a policy flag.** A risk-listed path, a footprint stray, an oversized diff, a
   weakened test, a cancelled ticket, a contradicting decision, an irreversible effect, an `intent`
   conflict and a locked pair are not defects, and repairing one decides scope on the user's behalf.
-- **A repair makes you the PR's author**, and D-77's resolution-commit exemption does not reach it.
-  Never merge that PR, and never fetch a verdict on it. Hand it off, and leave the repair record a
-  later session reads.
+- **A repair makes you the PR's author**, and the resolution-commit exemption (private D-77) does
+  not reach it. Never merge that PR, and never fetch a verdict on it. Hand it off, and leave the
+  repair record a later session reads.
 - **A PR carrying a repair record you wrote always escalates.** A record another agent wrote
   escalates nothing on its own, and the remaining conditions decide the lane. See AUTO LANE for the
   three things you verify before merging such a PR.

@@ -70,9 +70,10 @@ the pull request's head no longer equals it. So a head that moves while you revi
 verdict there, and you need not detect the move yourself.
 
 **A repair commit is ordinary work, and it confers authorship.** The `pr-merge-loop` skill may push
-one to a branch under its REPAIR phase (D-157). D-77 exempts a *mechanical resolution* commit from
-that flow's own authorship gate. The exemption never reached this phase, and it does not reach a
-repair. Step 4 asks whether you wrote **any** commit here, and you answer it that way.
+one to a branch under its REPAIR phase (private D-157). A *mechanical resolution* commit is exempt
+from that flow's own authorship gate (private D-77). The exemption never reached this phase, and
+it does not reach a repair. Step 4 asks whether you wrote **any** commit here, and you answer it
+that way.
 
 **An implementing agent may not review its own work by spawning you.** An agent that opens a pull
 request and then invokes this skill on that pull request reviews itself through one level of
@@ -274,12 +275,12 @@ evidence is not evidence of safety.
 
 ## 6. ADVISORY NOTES — surfaced, never blocking
 
-The house style guide (`STYLE.md`) is guidance, and nothing enforces it (D-29). You are the only
-feedback loop it can have, so note a breach — and never grade one.
+The house style guide (`STYLE.md`) is guidance, and nothing enforces it (private D-29). You are
+the only feedback loop it can have, so note a breach — and never grade one.
 
 - Note a style breach as an observation, with the file and the line.
 - Report any other small finding the same way: a naming nit, a stale comment, a thin test name.
-- Never note a line that matches a check 1 shape. It fails check 1 instead (D-11).
+- Never note a line that matches a check 1 shape. It fails check 1 instead (scaffold D-11).
 - Keep every note out of the verdict's reasoning.
 - Never let a note fire a condition. Never let a note turn approve into escalate.
 
@@ -335,8 +336,8 @@ FINDINGS
 ADVISORY      <notes, never blocking, or none>
 ```
 
-**The field names are a contract, and the `cycle-manager` skill builds against them** (its C2, D-5).
-Write each one exactly as shown. Rename none, reorder none, and add no field.
+**The field names are a contract, and the `cycle-manager` skill builds against them** (its C2;
+scaffold D-5). Write each one exactly as shown. Rename none, reorder none, and add no field.
 
 - **`HEAD`** names the full 40-character SHA you reviewed. Write the SHA from §0 step 1, which is
   also the commit §3 tested.

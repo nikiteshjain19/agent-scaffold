@@ -135,7 +135,7 @@ project setup, and recorded in `PROJECT.md`.
 
    - **The PRs it covers** — every PR open against the default branch, whoever opened it. A PR an
      earlier run left open collides exactly as one this run opened does. This scope is wider than
-     §6 item 7's refill scope, deliberately (D-108).
+     §6 item 7's refill scope, deliberately (private D-108).
    - **The paths it holds** — the union of the linked issue's declared footprint and the files the
      PR actually changed. A stray is real content on the branch (§4 step 8).
 
@@ -166,8 +166,8 @@ project setup, and recorded in `PROJECT.md`.
 
     Report a stall. End the run. Never wait, poll, or sleep for a PR to merge. Go to END OF RUN.
 
-    **D-108 stays in force, and this step does not reverse it.** A stalled run still reports and
-    ends. This step changes only which stall the report names.
+    **The stall rule stays in force, and this step does not reverse it** (private D-108). A stalled
+    run still reports and ends. This step changes only which stall the report names.
 
 ### The disjointness test — mechanical, never a judgment call
 
@@ -197,7 +197,7 @@ rules literally:
   report. It becomes eligible again when it reaches the top.
 - **Tell the lane to state in the PR body that the issue declared no footprint** (§4.8). The
   reviewer then escalates rather than reading silence as compliance.
-- **Never invent a footprint for it.** A footprint an agent guessed is not a commitment (D-19).
+- **Never invent a footprint for it.** A footprint an agent guessed is not a commitment (private D-19).
   Ask the issue's author to declare one instead.
 
 ### Hunt for the universally-touched file before the first wave
@@ -273,7 +273,7 @@ Every lane runs these steps for its own issue. The coordinator dispatches the la
 7. **Sync with the current default branch immediately before you push. Always.** Fetch first.
    Rebase a branch you have not pushed yet onto the current default branch. Merge the current
    default branch into a branch you have already pushed. Never rebase a branch you have pushed.
-   A rebase needs a force-push, which destroys the commits a reviewer already read (D-77). The
+   A rebase needs a force-push, which destroys the commits a reviewer already read (private D-77). The
    CONFLICT phase of the `pr-merge-loop` skill states the same rule for the merge
    flow. Re-run the full test + lint + typecheck suite after the sync (`CLAUDE.md` §11 rule 9).
    This applies to every lane and every run — it is not a parallel-mode step. A branch that has
@@ -292,7 +292,8 @@ Every lane runs these steps for its own issue. The coordinator dispatches the la
    (`PROJECT.md`, its "Toolchain" section). The parent's commits then become ancestors of the
    default branch, so the child's diff is its own changes alone. Moving the child's base is a base
    change on the PR, never a rebase of the child's commits (the `pr-merge-loop` skill's STACKED
-   PAIRS phase). So no force-push is ever required of a stacked child, and D-77 stands untouched.
+   PAIRS phase). So no force-push is ever required of a stacked child, and the no-force-push rule
+   (private D-77) stands untouched.
 8. **Compare your changed files against the declared footprint.** List the files the branch
    actually changed, and name every one the footprint does not cover. Report the strays in the
    PR body under their own heading. Never hide a stray, and never widen the footprint to cover
@@ -366,7 +367,7 @@ issue returns the lane to the coordinator, which adds the id to this set.
    eligible issue left to dispatch.
 9. **Report an idle lane rather than filling it unsafely.** Where the merge gate sends every PR
    to a human, lanes idle while approvals wait. Say so in the run report instead of letting the
-   reader infer throughput that will not happen (D-19).
+   reader infer throughput that will not happen (private D-19).
 10. **Remove a lane's worktree once that lane has returned and its PR is pushed.** The coordinator
     does this, at §4 step 11 — the point the lane is finished. A lane cannot remove the worktree it
     is working in, and this step pairs with the creation in item 2. Removing the worktree ends the

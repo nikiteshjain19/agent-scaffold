@@ -149,7 +149,7 @@ FINDINGS
 ADVISORY      <the reviewer's non-blocking notes, unchanged>
 ```
 
-This is the verdict block the `pr-reviewer` skill returns, field for field (D-5). That skill's
+This is the verdict block the `pr-reviewer` skill returns, field for field (scaffold D-5). That skill's
 RETURN THE VERDICT section owns the shape. This contract names the fields you read.
 
 - **`HEAD`** is the commit the reviewer recorded in its own INDEPENDENCE phase. Read it from this
@@ -260,8 +260,8 @@ Report which one stopped the run, by name.
 4. Record every pull request the wave opened, in the cycle record's `opened` field.
 5. Go to DRIVE with that list. Go to ASSESS instead when the list is empty.
 
-**Each cycle is a fresh run of that skill** (D-108). A cycle starts after merges have moved the
-default branch, so the wave is selected against a default branch the previous cycle changed. Never
+**Each cycle is a fresh run of that skill** (private D-108). A cycle starts after merges have moved
+the default branch, so the wave is selected against a default branch the previous cycle changed. Never
 wait, poll or sleep for a merge inside a wave.
 
 ---
@@ -291,13 +291,12 @@ three rounds says something about the issue rather than about the code, and nobo
 that was never printed.
 
 **Every round gets a fresh repairer and a fresh reviewer.** Never re-invoke an earlier one. An agent
-on a second pass re-reads its own reasoning rather than the diff, which is the failure D-155
-describes. A reviewer that already approved a shape approves it again, so a reused reviewer is a
-verdict you already have.
+on a second pass re-reads its own reasoning rather than the diff (private D-155). A reviewer that
+already approved a shape approves it again, so a reused reviewer is a verdict you already have.
 
-**`REPAIR` bound 1 caps no passes** (D-168). A repairer repairs every repairable finding, in as many
-passes as the defect takes. So a round is no longer one pass. A repairer may push several commits
-inside one round.
+**`REPAIR` bound 1 caps no passes** (private D-168). A repairer repairs every repairable finding,
+in as many passes as the defect takes. So a round is no longer one pass. A repairer may push
+several commits inside one round.
 
 **Three things bound a repairer inside one round, and none of them is a counter.** `REPAIR` bound 5
 discards a repair whose gate failed. `REPAIR` bound 9 forbids repairing again to chase a red check.
@@ -310,8 +309,8 @@ one round may push several.
 this skill restates none of them. Two copies of one rule drift apart, and the copy nobody edits is
 the one an agent reads.
 
-**A repair makes its repairer the branch's author** (D-157). That is why the repairer never merges
-and never reviews, and why the next reviewer is a fresh agent.
+**A repair makes its repairer the branch's author** (private D-157). That is why the repairer
+never merges and never reviews, and why the next reviewer is a fresh agent.
 
 ---
 
