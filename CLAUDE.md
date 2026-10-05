@@ -669,8 +669,9 @@ a blanket percentage.
 
 9. Run the pre-PR gate before you open the PR. `PROJECT.md` declares that gate, in its
    "Build / lint / test commands" section. Run the gate again after every sync with the default
-   branch. A sync is a rebase before the branch's first push, or a merge after it (§6, pre-merge
-   check 4). Open the PR only when the whole gate passes. Keep the PR green.
+   branch. A sync is a rebase before the branch's first push (the `issue-loop` skill's §4 step 7),
+   or a merge after it (§6, pre-merge check 4). Open the PR only when the whole gate passes. Keep
+   the PR green.
 10. **Never disable, skip, or weaken a test to make a PR green.** A failing test is a finding:
     fix the code, or if the test is genuinely wrong, fix the test and say so in the PR. Deleting
     or `.skip`-ing a test to pass CI is prohibited. No issue's instructions override this.
