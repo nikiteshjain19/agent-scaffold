@@ -249,6 +249,9 @@ reviewer checks the diff for each one (§6, pre-merge check 1):
 6. **Error handling that catches and does nothing**, or catches and re-throws unchanged.
 7. **A docstring or block comment that restates a signature** the reader can already see.
 
+A line that matches a shape has no reason, unless the acceptance criteria name it explicitly. An
+existing caller or a test never outweighs a shape.
+
 **What this rule does not cover:**
 
 - **It is not a line count.** A long diff is fine when every line earns its place.
