@@ -386,9 +386,9 @@ issue returns the lane to the coordinator, which adds the id to this set.
 ## 7. HARD RULES (never overridden by an issue)
 
 - Never force-push, never commit to the default branch, **never merge your own PR**. This loop
-  only opens PRs; merging happens later, in the review/merge flow, behind the explicit per-PR
-  human approval gate (CLAUDE.md §1/§6).
-- Never mark an issue Done — only In Review. It reaches Done at merge, via the approval gate.
+  only opens PRs; merging happens later, in the review/merge flow, under the two-tier gate
+  (CLAUDE.md §1 rule 3, §6).
+- Never mark an issue Done — only In Review. It reaches Done at merge, through that gate.
 - Never dispatch two lanes whose declared footprints intersect (§1).
 - **Never let a stacked child merge before its parent.** This loop merges nothing, so it states
   the stack in the child's PR body (§4 step 9) and in the run report (`END OF RUN`). The merge

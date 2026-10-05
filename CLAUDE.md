@@ -22,8 +22,9 @@ topic at a time, covering:
    (Backlog / Todo / In Progress / In Review / Done), its priority model, and its
    issue-id + PR auto-link convention. The `issue-loop` skill reads exactly this mapping, so
    record it in `PROJECT.md` in enough detail to run the loop.
-3. **Branching** — default branch name, branch naming convention, who merges (default: an agent
-   may merge only behind an explicit per-PR human approval, and never its own PR — see §6).
+3. **Branching** — default branch name, branch naming convention, who merges (default: the two
+   tiers of §6 — an escalated PR merges only after explicit per-PR human approval, a PR that trips
+   no escalation condition may merge after an independent approve, and no agent merges its own PR).
 4. **Build sequence** — milestones / week-by-week order, and any hard "ship X before Y" rules.
 5. **Constraints** — budget caps (especially AI/API spend), compliance needs, secrets
    categories, non-negotiables.
@@ -106,9 +107,9 @@ decision in `decisions.d/` so it is visible and reversible.
 1. **No ticket, no code.** Every change starts with a ticket in the tracker.
 2. **No direct pushes to the default branch.** Every change goes through a feature branch
    and a pull request — no matter how small.
-3. **Agents merge only behind an explicit human approval gate.** PRs are opened in a reviewable
-   state; an agent may run the merge only after the user explicitly approves *that specific PR* —
-   and never for a PR it authored itself (§6).
+3. **Agents merge only through the two-tier gate in §6.** An escalated PR merges only after the
+   user explicitly approves *that specific PR*. A PR that trips no escalation condition may merge
+   without asking, once an independent reviewer approves it. No agent ever merges a PR it authored.
 4. **Read the decision log before implementing and again before requesting merge**
    (`decisions.d/`, §7). A decision made after a ticket or PR was written can invalidate it.
 5. **Never build an artifact ahead of its consumer.** No table, column, endpoint, or
@@ -157,7 +158,9 @@ Before writing any code, an agent picking up a ticket must, in order:
 1. **Read the full ticket** — description, acceptance criteria, and ALL comments (comments
    often contain scope changes that supersede the description).
 2. **Check "Blocked by" relations.** If any blocker is not Done, do not start — leave a short
-   comment naming the open blocker and pick something else.
+   comment naming the open blocker and pick something else. The one exception is a stacked child
+   lane. The `issue-loop` skill dispatches it beside its parent, under the conditions in its §1
+   step 5. Its PR stacks on the parent's PR (§3).
 3. **Check milestone order** (§5). Don't pull a later-milestone ticket past an open
    earlier-milestone dependency.
 4. **Read the decision log** (`decisions.d/`, §7) — specifically any entry dated after
@@ -247,7 +250,7 @@ no consumer — that later work has to detect and remove. That is pure waste, tw
   calls out anything applied out-of-band (e.g. "apply migration X before deploying") with the
   exact ordering.
 - Open it in a reviewable state and hand it to the user. **The authoring agent never merges its
-  own PR** — merging happens only through the approval gate below.
+  own PR** — merging happens only through the two-tier gate below.
 - **Keep the body describing the current diff.** Update the body in the same push that changes what
   the PR would land. A new commit, an amendment and a rebase all trigger this. What must stay true
   is one sentence: the body describes the diff this PR would land **now**, never the intent it
@@ -266,11 +269,13 @@ this review (the implementing agent, or preferably a separate reviewing agent) m
    current decision, or close it with a comment explaining which decision superseded it. A PR
    must never merge in contradiction of a logged decision.
 3. **Duplicate check** — scan open PRs and recently merged work for overlap. If another PR
-   already implements this (fully or partly), close or rebase this one rather than merging a
+   already implements this (fully or partly), close or rework this one rather than merging a
    duplicate.
 4. **Staleness against the default branch** — has the default branch moved since the branch
-   was cut? Rebase (or merge the default branch in), resolve conflicts, and re-run build,
-   lint, and tests on the updated branch. Check that files this PR touches weren't
+   was cut? Merge the default branch into the PR branch, resolve conflicts, and re-run build,
+   lint, and tests on the updated branch. Never rebase a pushed branch: a rebase needs a
+   force-push, which destroys the commits a reviewer already read. Resolve only a mechanical
+   conflict (approval gate rule 6 below). Check that files this PR touches weren't
    restructured on the default branch in the meantime.
 5. **Ticket still valid** — re-read the ticket and its comments; confirm it wasn't cancelled,
    descoped, or superseded while the PR was open.
@@ -663,9 +668,10 @@ a blanket percentage.
 **Gates (reinforcing §3, §4.8, §6):**
 
 9. Run the pre-PR gate before you open the PR. `PROJECT.md` declares that gate, in its
-   "Build / lint / test commands" section. Run the gate again after any rebase or merge of the
-   default branch during pre-merge review. Open the PR only when the whole gate passes. Keep the
-   PR green.
+   "Build / lint / test commands" section. Run the gate again after every sync with the default
+   branch. A sync is a rebase before the branch's first push (the `issue-loop` skill's §4 step 7),
+   or a merge after it (§6, pre-merge check 4). Open the PR only when the whole gate passes. Keep
+   the PR green.
 10. **Never disable, skip, or weaken a test to make a PR green.** A failing test is a finding:
     fix the code, or if the test is genuinely wrong, fix the test and say so in the PR. Deleting
     or `.skip`-ing a test to pass CI is prohibited. No issue's instructions override this.
@@ -715,7 +721,7 @@ over ten items costs ten.
 
 1. The item it belongs to — the ticket or the PR, by id.
 2. The one question the user has to answer.
-3. What you already tried, so the user is never asked to repeat it.
+3. What you already tried, if anything, so the user is never asked to repeat it.
 4. The options, each with what that answer causes. Put the recommended one first, with its reason.
 5. What stays blocked until the answer arrives, by id.
 

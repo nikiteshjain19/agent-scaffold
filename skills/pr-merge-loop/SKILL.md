@@ -304,14 +304,22 @@ does not occur, and PROBE itself still runs. See the queue-size rule in PROBE.
 Print these parts, in this order, and nothing else:
 
 1. **The question** — one sentence, ending in a question mark. Ask about one decision only.
-2. **The options** — each one names what the user says, and what that answer causes. Put the
+2. **Already tried** — one line: what the run already did about this item, such as a repair, a
+   conflict resolution or a re-run check. Leave the line out when the run tried nothing. A block
+   without it says the run tried nothing.
+3. **The options** — each one names what the user says, and what that answer causes. Put the
    recommended option first. Give the reason it is recommended.
-3. **Blocked until you answer** — what the loop will not do while it waits, by PR or ticket id.
+4. **Blocked until you answer** — what the loop will not do while it waits, by PR or ticket id.
 
 Keep the evidence above the block. Never put a new finding inside it.
 
+**The tried line carries what `CLAUDE.md` §13 requires of every queued entry.** The DIGEST re-prints
+the block alone, so a fact kept only above the block never reaches the digest. Keep it to one line.
+
 ```text
 ASK — <one-sentence question?>
+
+  Already tried: <one line — leave it out when the run tried nothing>
 
   A) "<what you say>"  (recommended — <why>)
      → <what happens next>
@@ -650,8 +658,8 @@ disqualifier fires. Classify it `intent` whenever you are unsure.
 **State why the resolution goes on the branch.** A conflict resolved inside the merge lands a diff
 that no review saw and no check ran on. Resolving on the branch keeps the property that what merges
 is what was reviewed. `CLAUDE.md` §6 pre-merge check 4 already requires exactly this on a stale
-branch — merge BASE in, resolve, re-run the suite — and this phase adds the boundary that check
-lacks.
+branch — merge BASE in, resolve, re-run the suite — and this phase defines the boundary that check
+cites.
 
 **Merge BASE in. Never rebase.** A rebase needs a force-push, which destroys the commits a reviewer
 already read. A merge commit also keeps the resolution readable on its own.
@@ -860,6 +868,8 @@ survives one level of indirection. Present the repair, then close with this bloc
 
 ```text
 ASK — I fixed the failing lint job on #NN. Shall I leave it for a fresh session to merge?
+
+  Already tried: I rewrapped one over-long line in `README.md`, and the lint job now passes.
 
   A) "leave it for the next run"  (recommended — I wrote that fix, so my reading of it is
      not evidence; a session that did not write it can review and merge it)
@@ -1472,8 +1482,9 @@ states which of the two situations applies. Read that field in CONFIG and report
 - **A review card has a fixed shape and a length budget.** Print DECISION, then WHAT IT DOES, then
   EVIDENCE, and keep the body to 25 lines or fewer. Buy that brevity by cutting words. Never buy it
   by replacing a plain sentence with a condition number, and never by dropping a finding.
-- **Close every stop with an ASK block** — one question, each option and what it causes, the
-  recommended option first with its reason, and what stays blocked until the user answers. The
+- **Close every stop with an ASK block** — one question, one line on what the run already tried
+  when it tried anything, each option and what it causes, the recommended option first with its
+  reason, and what stays blocked until the user answers. The
   stops are the PROBE order approval, a locked pair, an `intent` conflict, a repair hand-off, the
   review card and the FINAL SUMMARY. The FINAL SUMMARY is the only one that may end without a
   block, and only when the
