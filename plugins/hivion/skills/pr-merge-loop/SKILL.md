@@ -171,19 +171,23 @@ Run these steps in order.
    - **A possible lock.** Another open PR changes a file this PR changes. Read that PR's files with
      `gh pr view <num> --json files`. Treat the pair as a possible locked pair under the HARD STOP in
      the escalate lane. Ask in place, and classify nothing.
-5. Run CLASSIFY for this PR alone, and print its reason.
+5. Run `git fetch origin` so BASE is current, then run CLASSIFY for this PR alone, and print its
+   reason. CLASSIFY reads the change type against the fetched BASE.
 6. Run CONFLICT's classification for this PR. Any conflict with BASE stops this mode. Print the class
    and its reason. Resolve nothing, whatever the class.
 7. Choose the lane, and run the merge steps only when the lane allows them.
-   - **Auto lane**, when CLASSIFY says `auto` and the relayed verdict is `approve`. Steps 1 to 8 of
-     AUTO LANE are covered by steps 1 to 6 above. Run AUTO LANE steps 9 to 15 in order.
+   - **Auto lane**, when CLASSIFY says `auto` and the relayed verdict is `approve`. AUTO LANE steps
+     1 to 8 are covered by steps 1 to 6 above, with step 1's fetch run in step 5. Run AUTO LANE
+     steps 9 to 15 in order.
    - **Escalate lane**, otherwise. Build the review card, print it, and record its question in the
      digest. A contradiction or a destructive action is asked in place instead. Merge only when the
      user's verbatim answer approves this PR under the approval gate in `CLAUDE.md` §6. "Not yet
-     approved", silence, and an answer about another PR are not approval. On approval, run AUTO LANE
-     steps 9 to 15.
-8. Return the block below. Then print the FINAL SUMMARY row and the DIGEST for this PR, in their own
-   shapes.
+     approved", silence, and an answer about another PR are not approval. On approval, run
+     escalate-lane steps a and b first, and merge nothing if either one stops. An approval does not
+     override the authorship check in step a. Then run AUTO LANE steps 9 to 15 in order.
+8. When this PR merged in the auto lane, print its WHAT IT DOES block first, as AUTO LANE step 19
+   requires. The escalate lane's card already carries the report of its merge. Then return the block
+   below. Then print the FINAL SUMMARY row and the DIGEST for this PR, in their own shapes.
 
 ```text
 CYCLE-MERGE-RESULT
@@ -1715,4 +1719,4 @@ ASK — Shall I bring #117 back for review now that #133 has merged?
 ---
 
 When invoked, **start with CONFIG. Then take SINGLE-PR MODE when the invocation names one pull
-request, and SETUP otherwise.**
+request and asks for a `CYCLE-MERGE-RESULT` block, and SETUP otherwise.**
