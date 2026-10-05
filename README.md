@@ -13,7 +13,8 @@ any other tool.
   the two-tier merge gate, the testing policy, secret handling, and the interview that sets a new
   project up.
 - **[`STYLE.md`](STYLE.md)** — how to write a document an agent executes rather than interprets.
-- **`skills/`** — eight skills, in the order they run:
+- **`plugins/hivion/skills/`** — eight skills, in the order they run. They ship as the `hivion`
+  plugin, whose root is `plugins/hivion/`. An install copies that directory and nothing else:
   - `project-onboard` — adopt the workflow into a project that already has code, a backlog or CI.
   - `feature-plan` — turn a feature request into an approved design before any issue is filed.
   - `issue-writer` — turn an idea, or an approved plan, into executable tracker issues.
