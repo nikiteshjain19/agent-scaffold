@@ -31,7 +31,7 @@ Local convenience tooling belongs in a private repository, not here.
 | **Base / default branch** | `main` |
 | **Branch naming** | `type/issue-id-short-desc`, e.g. `feat/12-plugin-hook` |
 | **Merge strategy** | Squash and delete the branch — `gh pr merge <n> --squash --delete-branch` |
-| **Who merges** | A human, for nearly every PR. The risk list below covers almost every file, so almost every PR escalates. An agent may run a merge only after the user approves that specific PR, and never its own. |
+| **Who merges** | The two-tier gate in `CLAUDE.md` §6 decides, from the "Merge gate" section below. |
 | **CI** | GitHub Actions — `.github/workflows/lint.yml`, one job named `Markdown lint`. See "Build / lint / test commands". |
 | **Database / payments / LLM APIs** | None. `CLAUDE.md` §10 does not apply, and the database steps in the skills are reported not applicable. |
 
@@ -61,8 +61,9 @@ Local convenience tooling belongs in a private repository, not here.
   `.markdownlint-cli2.yaml`.
 - **Test:** none.
 
-**Pre-PR gate:** `npm ci && npm run lint`. Run it before you open a PR, and again after any rebase.
-Open the PR only when it passes.
+**Pre-PR gate:** `npm ci && npm run lint`. Run it before you open a PR. Run it again after you
+rebase onto the default branch or merge it in (`CLAUDE.md` §11 rule 9). Open the PR only when it
+passes.
 
 `markdownlint-cli2` is the only dependency. It is a dev dependency, pinned to an exact version, and
 `package-lock.json` is committed, so `npm ci` installs the same tree everywhere. Node 22 or later is
@@ -84,8 +85,7 @@ reported success on the PR's head commit. Read it with `gh pr checks <n>`.
 `.markdownlint-cli2.yaml`, and the pinned toolchain installs cleanly.
 
 **What a green run does not prove:** that a document is correct, that two documents agree, that a
-link resolves, or that a skill behaves as its text says. It checks form, never meaning. That is why
-the risk list below still sends nearly every PR to a human.
+link resolves, or that a skill behaves as its text says. It checks form, never meaning.
 
 Absence of the check is **red**, never "nothing to fail".
 
@@ -109,9 +109,8 @@ package.json
 package-lock.json
 ```
 
-That covers nearly every file here, and that is correct: this project's product is its governance,
-so almost every change is a governance change. A consuming application repo will declare a far
-narrower list.
+The list is broad on purpose. This project's product is its own governance, so a change here
+changes the rules agents follow.
 
 `package.json` and `package-lock.json` are listed because a dependency change is exactly what
 escalation condition 1 exists for.
