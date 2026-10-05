@@ -184,7 +184,7 @@ Run these steps in order.
      user's verbatim answer approves this PR under the approval gate in `CLAUDE.md` §6. "Not yet
      approved", silence, and an answer about another PR are not approval. On approval, run
      escalate-lane steps a and b first, and merge nothing if either one stops. An approval does not
-     override the authorship check in step a. Then run AUTO LANE steps 9 to 15 in order. Record the
+     override the authorship check in step a. Then run escalate-lane steps c to g in order. Record the
      card's merge question in the digest only when the answer does not approve this PR. An approved
      PR queues nothing, because a merged PR has no question left to ask.
 8. When this PR merged in the auto lane, print its WHAT IT DOES block first, as AUTO LANE step 19
