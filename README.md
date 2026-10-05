@@ -97,8 +97,8 @@ Then tell your agent **"start new project"**. It runs the interview in `CLAUDE.m
 
 `CLAUDE.md` expects two things this repository cannot supply for you:
 
-- **`PROJECT.md`** — the toolchain mapping, the merge gate, and the commands. The §0 interview
-  writes it.
+- **`PROJECT.md`** — the toolchain mapping, the merge gate, and the commands. `CLAUDE.md` §0
+  writes it: the interview for a new project, or the `project-onboard` skill for an existing one.
 - **A secret guard** — a pre-commit hook that blocks a staged `.env*` file and a credential-shaped
   line, as §8 requires. Write one, or take one from your host.
 

@@ -3,14 +3,48 @@
 Workflow rules for Claude (and any coding agent) working in this repository. These rules are
 tool-agnostic: the concrete tools (ticket tracker, repo host, CI, etc.) for THIS project are
 defined in `PROJECT.md` at the repo root. If `PROJECT.md` does not exist yet, run the
-**New Project Bootstrap** below before doing anything else.
+**Project Bootstrap** (§0) below before doing anything else. A missing `PROJECT.md` does not
+make the project new: §0 decides that first.
 
 ---
 
-## 0. New Project Bootstrap — run when the user says "start new project"
+## 0. Project Bootstrap — run when `PROJECT.md` is missing, or the user says "start new project"
 
-When this file is dropped into a fresh repo and the user says "start new project" (or
-`PROJECT.md` is missing), do NOT start coding. Conduct a structured interview first, one
+**Route first.** Choose the path from the state of the repository, before you ask any interview
+question. A missing `PROJECT.md` means only that the workflow is not adopted yet. The words
+"start new project" start this section, and never choose its path.
+
+**The two paths:**
+
+- **A new project** runs the interview below, as written.
+- **An existing project** runs the `project-onboard` skill instead of the interview. That skill
+  asks the seven topics below of a project that already exists, and writes `PROJECT.md` itself.
+
+**The test that chooses — mechanical, not a judgment.** The project is existing when either
+condition holds. It is new when neither holds.
+
+- **The repository has a commit that is not its own scaffolding.** List every path the history
+  touches: `git log --format= --name-only | sort -u`. Ignore any empty line in the output. The
+  condition holds when any path is outside the scaffolding set. That set is `CLAUDE.md`,
+  `STYLE.md`, `PROJECT.md`, `README.md`, `LICENSE`, `.gitignore`, `decisions.d/` and `.claude/`.
+  A repository with no commit yet does not meet it. There the command fails, and that failure
+  reads as "not met", never as unreadable history.
+- **The tracker holds an open issue.** Ask the owner which tracker holds the project's issues.
+  Count its open issues. The condition holds when the count is above zero. It does not hold when
+  the owner names no tracker.
+
+**Ask the owner when the test is ambiguous.** Treat the test as ambiguous in each of these cases:
+
+- you cannot read the repository's history;
+- you cannot reach the tracker the owner names;
+- the result contradicts how the owner describes the project;
+- the `project-onboard` skill's own precondition check disagrees with this test.
+
+**Never default to the new-project path.** The interview on an existing repository writes a
+confident, wrong `PROJECT.md`, and every later agent trusts it. Adoption on a nearly empty
+repository only reports little.
+
+**The new-project path.** Do NOT start coding. Conduct a structured interview first, one
 topic at a time, covering:
 
 1. **Product** — name, one-line purpose, who it's for, what "done" looks like for v1.

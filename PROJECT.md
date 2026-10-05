@@ -4,7 +4,8 @@ The project document for **this** repository. `CLAUDE.md` defines *how* we work;
 *what* we work on and the concrete tools the workflow resolves against. Agents read it cold.
 
 > Scope note: this file describes this repo as its own project. A repository that installs the
-> `hivion` plugin writes its own `PROJECT.md` through the `CLAUDE.md` §0 interview.
+> `hivion` plugin writes its own `PROJECT.md` through `CLAUDE.md` §0: the interview for a new
+> project, or the `project-onboard` skill for an existing one.
 
 ## 1. Product
 
