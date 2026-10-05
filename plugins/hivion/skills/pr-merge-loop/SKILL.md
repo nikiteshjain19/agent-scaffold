@@ -145,6 +145,60 @@ not earned.
 
 ---
 
+## SINGLE-PR MODE — a caller dispatches one pull request
+
+A caller may run this skill against one pull request. The `cycle-manager` skill does so with its C5
+brief (scaffold D-6). Enter this mode only when the invocation names one pull request and asks for a
+`CYCLE-MERGE-RESULT` block. Every other invocation runs the full loop from SETUP.
+
+**This mode writes to one pull request, its ticket, and the tickets that ticket blocked.** It writes
+no commit. It resolves no conflict and makes no repair. A conflict or a defect stops the merge, and
+the PR stays open.
+
+Run these steps in order.
+
+1. Read the PR number from the invocation. Stop and report when the invocation names no number, or
+   names more than one.
+2. Read the verdict block in the invocation under A RELAYED VERDICT, and apply its four rules. Dispatch
+   no reviewer. Stop and report when no verdict block is present, because condition 6 is then met.
+3. Print one line that names this mode and the steps it skips: SETUP's batch listing and PROBE.
+4. List the open PRs once, read-only: `gh pr list --state open --json number,baseRefName,headRefName`.
+   Hold this PR, and merge nothing, when one of these three checks finds a hit.
+   - **A stacked child.** This PR's base is another open PR's head branch. Hold this PR under
+     STACKED PAIRS.
+   - **A parent with an open child.** Another open PR's base is this PR's head branch. Retargeting
+     that child would write to another PR, so this mode never merges the parent.
+   - **A possible lock.** Another open PR changes a file this PR changes. Read that PR's files with
+     `gh pr view <num> --json files`. Treat the pair as a possible locked pair under the HARD STOP in
+     the escalate lane. Ask in place, and classify nothing.
+5. Run CLASSIFY for this PR alone, and print its reason.
+6. Run CONFLICT's classification for this PR. Any conflict with BASE stops this mode. Print the class
+   and its reason. Resolve nothing, whatever the class.
+7. Choose the lane, and run the merge steps only when the lane allows them.
+   - **Auto lane**, when CLASSIFY says `auto` and the relayed verdict is `approve`. Steps 1 to 8 of
+     AUTO LANE are covered by steps 1 to 6 above. Run AUTO LANE steps 9 to 15 in order.
+   - **Escalate lane**, otherwise. Build the review card, print it, and record its question in the
+     digest. A contradiction or a destructive action is asked in place instead. Merge only when the
+     user's verbatim answer approves this PR under the approval gate in `CLAUDE.md` §6. "Not yet
+     approved", silence, and an answer about another PR are not approval. On approval, run AUTO LANE
+     steps 9 to 15.
+8. Return the block below. Then print the FINAL SUMMARY row and the DIGEST for this PR, in their own
+   shapes.
+
+```text
+CYCLE-MERGE-RESULT
+merged      <this PR number when it merged, or none>
+still-open  <this PR number when it did not merge, or none>
+queued      <1 when this run queued its question in the digest, otherwise 0>
+hard-stops  <this PR number when its question was asked in place, or none>
+```
+
+A question is either queued or asked in place, never both. A held stacked child, and a held parent,
+count as still-open and queue no question. The `cycle-manager` skill reads this block, so print its
+four field names exactly as written.
+
+---
+
 ## SETUP (run once)
 
 1. List open PRs targeting BASE:
@@ -1660,4 +1714,5 @@ ASK — Shall I bring #117 back for review now that #133 has merged?
 
 ---
 
-When invoked, **start with CONFIG then SETUP.**
+When invoked, **start with CONFIG. Then take SINGLE-PR MODE when the invocation names one pull
+request, and SETUP otherwise.**

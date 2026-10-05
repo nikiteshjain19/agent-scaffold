@@ -195,7 +195,7 @@ forbade the repair. Both stop the loop for this pull request, and neither is ret
 ### C5 — the merge brief (manager to merger)
 
 ```text
-Run the pr-merge-loop skill against one pull request.
+Run the pr-merge-loop skill against one pull request, in its single-pull-request mode.
 Pull request: <N>
 An independent verdict already exists for this pull request. Do not fetch another.
 <the full C2 verdict block, unchanged>
@@ -217,6 +217,7 @@ queued      <count of questions in the digest>
 hard-stops  <pull-request numbers whose answer cannot wait, or none>
 ```
 
+The `pr-merge-loop` skill's SINGLE-PR MODE section defines this block and what each field holds.
 Followed by the merger's own final summary table and digest. Print all of it unchanged.
 
 ### C7 — the cycle record (held in the run, never written down)
