@@ -4,7 +4,7 @@
   "plugins": [
     {
       "name": "hivion",
-      "source": "./",
+      "source": "./plugins/hivion",
       "description": "Hivion's workflow scaffold: eight agent skills, invoked as hivion:<skill>."
     }
   ]
