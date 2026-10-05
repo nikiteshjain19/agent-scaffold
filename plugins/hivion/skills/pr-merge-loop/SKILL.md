@@ -179,12 +179,14 @@ Run these steps in order.
    - **Auto lane**, when CLASSIFY says `auto` and the relayed verdict is `approve`. AUTO LANE steps
      1 to 8 are covered by steps 1 to 6 above, with step 1's fetch run in step 5. Run AUTO LANE
      steps 9 to 15 in order.
-   - **Escalate lane**, otherwise. Build the review card, print it, and record its question in the
-     digest. A contradiction or a destructive action is asked in place instead. Merge only when the
+   - **Escalate lane**, otherwise. Run the REVIEW RECORD phase, then build the review card and print
+     it. A contradiction or a destructive action is asked in place instead. Merge only when the
      user's verbatim answer approves this PR under the approval gate in `CLAUDE.md` §6. "Not yet
      approved", silence, and an answer about another PR are not approval. On approval, run
      escalate-lane steps a and b first, and merge nothing if either one stops. An approval does not
-     override the authorship check in step a. Then run AUTO LANE steps 9 to 15 in order.
+     override the authorship check in step a. Then run AUTO LANE steps 9 to 15 in order. Record the
+     card's merge question in the digest only when the answer does not approve this PR. An approved
+     PR queues nothing, because a merged PR has no question left to ask.
 8. When this PR merged in the auto lane, print its WHAT IT DOES block first, as AUTO LANE step 19
    requires. The escalate lane's card already carries the report of its merge. Then return the block
    below. Then print the FINAL SUMMARY row and the DIGEST for this PR, in their own shapes.
@@ -193,7 +195,7 @@ Run these steps in order.
 CYCLE-MERGE-RESULT
 merged      <this PR number when it merged, or none>
 still-open  <this PR number when it did not merge, or none>
-queued      <1 when this run queued its question in the digest, otherwise 0>
+queued      <1 when this run queued a merge question in the digest because the answer does not approve this PR; 0 otherwise, including when the PR merged on approval>
 hard-stops  <this PR number when its question was asked in place, or none>
 ```
 
