@@ -168,7 +168,10 @@ the `CYCLE-MERGE-RESULT` block.
 3. Print one line that names this mode, says it skips SETUP's batch listing, and says PROBE runs
    scoped to this PR.
 4. List the open PRs once, read-only: `gh pr list --state open --limit 1000 --json number,baseRefName,headRefName`.
-   Hold this PR, and merge nothing, when either check finds a hit.
+   Hold this PR, and merge nothing, when any check finds a hit.
+   - **A base that is not BASE.** This PR's `baseRefName` is not BASE, so a merge would land on that
+     branch and never reach BASE. This covers a child whose parent merged but was never retargeted
+     (STACKED PAIRS). Only a full run retargets it.
    - **A stacked child.** This PR's base is another open PR's head branch. Hold this PR under
      STACKED PAIRS.
    - **A parent with an open child.** Another open PR's base is this PR's head branch. Retargeting
@@ -219,10 +222,10 @@ queued      <1 when this run queued a question in the digest: a conflict questio
 hard-stops  <this PR number when its question was asked in place, or none>
 ```
 
-A question is either queued or asked in place, never both. A held stacked child, a held parent, and
-a stop in step 2 count as still-open and queue no question. A stop in step 1 writes `none` in
-`merged`, `still-open` and `hard-stops`, and 0 in `queued`. The `cycle-manager` skill reads this
-block, so print its four field names exactly as written.
+A question is either queued or asked in place, never both. A PR held for a base that is not BASE, a
+held stacked child, a held parent, and a stop in step 2 count as still-open and queue no question. A
+stop in step 1 writes `none` in `merged`, `still-open` and `hard-stops`, and 0 in `queued`. The
+`cycle-manager` skill reads this block, so print its four field names exactly as written.
 
 ---
 
