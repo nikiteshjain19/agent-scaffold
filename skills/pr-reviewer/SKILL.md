@@ -25,7 +25,8 @@ Three properties define the job:
   wrote. `CLAUDE.md` §6 names author-review as a failure outright, so you establish independence
   before you read a single line of the diff.
 - **The verdict is machine-readable.** `CLAUDE.md` §6 branches on approve or not-approve. A
-  caller must never have to interpret prose to learn which one you meant.
+  caller must never have to interpret prose to learn which one you meant. It must never have to
+  guess which commit you reviewed, or where your findings start and end, either.
 - **The bias is fail-closed.** A condition you cannot evaluate counts as met, and the pull
   request escalates. A reviewer that approves under uncertainty is worse than no reviewer,
   because the auto-merge tier reads its approval as evidence.
@@ -49,17 +50,24 @@ A failed independence check ends the run, and every phase after it is wasted wor
 
 Run this phase before you read the diff. A reviewer who is not independent has no verdict to give.
 
-1. Name the pull request's author: `gh pr view <n> --json author,headRefName`.
-2. Name every commit author on the branch:
-   `git log origin/<BASE>..origin/<headRef> --format='%an <%ae>'`.
-3. Ask yourself the question directly. Did you write any commit on this branch?
-4. Include earlier sessions in that answer. A branch you wrote yesterday is still yours.
-5. Return `escalate` if the answer is yes. Say that you authored the branch. Stop here.
-6. Read what your invocation carried. Establish independence under the invocation rule below.
+1. Record the pull request's head commit SHA: `gh pr view <n> --json headRefOid`. Read it from the
+   host. Never take it from the invocation.
+2. Name the pull request's author: `gh pr view <n> --json author,headRefName`.
+3. Name every commit author on the branch:
+   `git log origin/<BASE>..<SHA> --format='%an <%ae>'`, with the SHA from step 1.
+4. Ask yourself the question directly. Did you write any commit on this branch?
+5. Include earlier sessions in that answer. A branch you wrote yesterday is still yours.
+6. Return `escalate` if the answer is yes. Say that you authored the branch. Stop here.
+7. Read what your invocation carried. Establish independence under the invocation rule below.
    Return `escalate` when that rule does not establish it. Independence you cannot establish is
    independence you do not have.
-7. Record the outcome in the verdict's `INDEPENDENCE` field, whichever way it went. Name which of
+8. Record the outcome in the verdict's `INDEPENDENCE` field, whichever way it went. Name which of
    the invocation rule's two cases applied.
+
+**The SHA from step 1 is the commit your verdict belongs to**, including a verdict that stops
+early, in this phase or in §1. The verdict's `HEAD` field names it. A caller voids the verdict when
+the pull request's head no longer equals it. So a head that moves while you review voids your
+verdict there, and you need not detect the move yourself.
 
 **A repair commit is ordinary work, and it confers authorship.** The `pr-merge-loop` skill may push
 one to a branch under its REPAIR phase (D-157). D-77 exempts a *mechanical resolution* commit from
@@ -146,7 +154,7 @@ you report that condition as fired. Report it as fired rather than as absent.
 4. Read the linked ticket and every comment on it. A comment supersedes the description.
 5. Copy the ticket's declared file footprint verbatim. §5 compares the diff against this text.
 6. Read the decision log end to end, using the location and read command from §1.
-7. Find the branch point: `git merge-base origin/<BASE> origin/<headRef>`.
+7. Find the branch point: `git merge-base origin/<BASE> <SHA>`, with the SHA from §0 step 1.
 8. Read that commit's date. Decision freshness in §4 needs it.
 9. Read the check results: `gh pr checks <n>`. Read them; never assume them.
 
@@ -159,7 +167,8 @@ tree can hold uncommitted files, stale build output, or a test that passes only 
 own tree from the branch as the host has it.
 
 1. Fetch first: `git fetch origin`.
-2. Create the worktree: `git worktree add ../wt-review-<n> --detach origin/<headRef>`.
+2. Create the worktree at the SHA from §0 step 1:
+   `git worktree add ../wt-review-<n> --detach <SHA>`.
 3. Run the project's build, lint and test commands there, exactly as §1 resolved them.
 4. Read each command's exit status. Never infer a pass from quiet output.
 5. Remove the worktree when you finish: `git worktree remove ../wt-review-<n>`.
@@ -299,30 +308,43 @@ the pull request rather than reading it.
 Return the verdict in this shape:
 
 ```text
-VERDICT: <approve | escalate | reject>
-PR: #<number> — <title> — @<author>
-INDEPENDENCE: <established | not established> — invocation carried <identifiers only | the item> — <the evidence>
-PRE-MERGE CHECKS (CLAUDE.md §6):
-  1 correctness         <pass | fail | unevaluable> — <evidence; each unjustified line, quoted, and its shape>
-  2 decision freshness  <…>
-  3 duplicate           <…>
-  4 staleness vs BASE   <…>
-  5 ticket valid        <…>
-  6 out-of-band         <…>
-  7 body freshness      <…>
-ESCALATION CONDITIONS (CLAUDE.md §6):
-  1 risk-list path      <fired | clear> — <the files, or none>
-  2 green signal        <fired | clear> — <job names and their states>
-  3 footprint stray     <fired | clear> — <the stray files, or the declared footprint>
-  4 test weakened       <fired | clear> — <the diff hunk, or none>
-  5 size threshold      <fired | clear> — <additions + deletions, files, vs the threshold>
-  6 reviewer verdict    <fired | clear> — <independence, and this verdict>
-  7 stale record        <fired | clear> — <the stale ticket, body sentence, or decision id>
-  8 irreversible effect <fired | clear> — <the hunk and the effect a revert cannot undo, or none>
-LOCAL CHECK RUN: <command> → <exit status>, in <worktree path>
-REASON: <two plain-English sentences a human can act on>
-ADVISORY (never blocking): <notes, or none>
+VERDICT       <approve | escalate | reject>
+PR            <number>
+HEAD          <the full head commit SHA from §0 step 1>
+INDEPENDENCE  <established | not established> — invocation carried <identifiers only | the item> — <the evidence>
+FINDINGS
+  PRE-MERGE CHECKS (CLAUDE.md §6):
+    1 correctness         <pass | fail | unevaluable> — <evidence; each unjustified line, quoted, and its shape>
+    2 decision freshness  <…>
+    3 duplicate           <…>
+    4 staleness vs BASE   <…>
+    5 ticket valid        <…>
+    6 out-of-band         <…>
+    7 body freshness      <…>
+  ESCALATION CONDITIONS (CLAUDE.md §6):
+    1 risk-list path      <fired | clear> — <the files, or none>
+    2 green signal        <fired | clear> — <job names and their states>
+    3 footprint stray     <fired | clear> — <the stray files, or the declared footprint>
+    4 test weakened       <fired | clear> — <the diff hunk, or none>
+    5 size threshold      <fired | clear> — <additions + deletions, files, vs the threshold>
+    6 reviewer verdict    <fired | clear> — <independence, and this verdict>
+    7 stale record        <fired | clear> — <the stale ticket, body sentence, or decision id>
+    8 irreversible effect <fired | clear> — <the hunk and the effect a revert cannot undo, or none>
+  LOCAL CHECK RUN: <command> → <exit status>, in <worktree path>
+  REASON: <two plain-English sentences a human can act on>
+ADVISORY      <notes, never blocking, or none>
 ```
+
+**The field names are a contract, and the `cycle-manager` skill builds against them** (its C2, D-5).
+Write each one exactly as shown. Rename none, reorder none, and add no field.
+
+- **`HEAD`** names the full 40-character SHA you reviewed. Write the SHA from §0 step 1, which is
+  also the commit §3 tested.
+- **`FINDINGS`** stands alone on its line. The block is every indented line beneath it, down to the
+  `ADVISORY` line. A caller passes that block to a repairer verbatim. Put only the checks, the
+  conditions, the local check run and the reason in it.
+- **`ADVISORY`** stays outside `FINDINGS`. A note is never a finding (§6), so it never reaches a
+  repairer.
 
 **The `INDEPENDENCE` field names the case, not only the outcome.** A caller reads it to learn what
 your invocation carried, so write `identifiers only`, or name the descriptive item you received.
@@ -360,6 +382,8 @@ merge gate itself. A reviewer that merges has broken a rule, not found a loophol
 
 Re-read the verdict as the agent that will act on it, and kill it if:
 
+- It names no `HEAD`, or a `HEAD` other than the SHA §0 step 1 recorded.
+- It puts an advisory note under `FINDINGS`, or a check or condition outside that block.
 - It says approve while any condition or check reads not applicable.
 - It clears a condition without naming the evidence that cleared it.
 - It reports a check as passing that you did not actually run.

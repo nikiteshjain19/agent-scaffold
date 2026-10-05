@@ -144,11 +144,22 @@ VERDICT       <approve | escalate | reject>
 PR            <N>
 HEAD          <SHA the verdict belongs to>
 INDEPENDENCE  <what the reviewer established, from its own INDEPENDENCE phase>
-FINDINGS      <the reviewer's findings, unchanged>
+FINDINGS
+  <the reviewer's findings, unchanged>
+ADVISORY      <the reviewer's non-blocking notes, unchanged>
 ```
 
-Store it verbatim and never edit it. A verdict whose `HEAD` no longer matches the pull request's
-current head is void, and you discard it rather than relaying it.
+This is the verdict block the `pr-reviewer` skill returns, field for field (D-5). That skill's
+RETURN THE VERDICT section owns the shape. This contract names the fields you read.
+
+- **`HEAD`** is the commit the reviewer recorded in its own INDEPENDENCE phase. Read it from this
+  field, never from any other line.
+- **`FINDINGS`** is a block. It is every indented line beneath the `FINDINGS` line, down to the
+  `ADVISORY` line. C3 relays exactly that block.
+- **`ADVISORY`** never travels to a repairer. A note is never a finding.
+
+Store the whole block verbatim and never edit it. A verdict whose `HEAD` no longer matches the pull
+request's current head is void, and you discard it rather than relaying it.
 
 ### C3 — the repair brief (manager to repairer)
 
@@ -158,12 +169,13 @@ Pull request: <N>
 Head commit:  <SHA>
 Round:        <n> of <cap>
 Findings to repair, verbatim from the review:
-<the FINDINGS block from C2, unchanged>
+<the FINDINGS block from C2: every indented line beneath FINDINGS, unchanged>
 Follow the REPAIR phase bounds of the pr-merge-loop skill in full. Repair nothing outside them.
 Return a REPAIR-RESULT block.
 ```
 
-Frozen property: the findings travel verbatim, and the bounds are cited rather than restated.
+Frozen property: the findings travel verbatim, and the bounds are cited rather than restated. The
+`ADVISORY` field never travels.
 
 ### C4 — the repair return (repairer to manager)
 
