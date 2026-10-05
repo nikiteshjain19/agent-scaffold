@@ -80,9 +80,21 @@ protects either too little or too much (scaffold D-12).
 of why:
 
 - `CLAUDE.md`, `PROJECT.md` and `README.md`;
-- the decision log directory (`decisions.d/`);
+- a modified or deleted entry in the decision log directory (`decisions.d/`), never an added one;
 - the project's agent configuration, including any skills or agent definitions it holds;
 - CI and deployment configuration.
+
+**A new decision entry is an ordinary change.** A new entry binds only through the files it changes.
+A decision that changes the gate, a spend cap or the risk list also edits `CLAUDE.md` or
+`PROJECT.md`. Those files stay risk-listed, so that decision still escalates (scaffold D-27).
+
+**An edit to an existing decision entry always escalates.** That includes a `Supersedes` or
+`Corrects` back-reference (§7). Such an edit switches off or rescopes a rule agents follow today. A
+deleted entry always escalates too, because the log is append-only (§7).
+
+**Write the change types beside the glob.** A glob alone matches an added entry too. Record the
+line in the Merge gate section as `decisions.d/**`, modified or deleted only. Escalation condition 1
+applies that qualifier (§6).
 
 **Risk-listed when the project has them** — a worked example an application repo can copy:
 
@@ -355,6 +367,11 @@ A PR escalates if **any** of these hold:
 
 1. **It touches a risk-list path** — the globs in the project's Merge gate section (`PROJECT.md`).
    This holds even on a fully green signal; that is the point of the list.
+   **A glob matches a path, never a change type.** It cannot tell an added file from a modified
+   one. So a risk-list entry may name the change types it covers, such as "modified or deleted".
+   Read each matched file's change type from the diff. Count a rename as a deletion of the old path
+   and an addition of the new one. An entry that names no change type covers every change type. A
+   change type you cannot read counts as covered.
 2. **The green signal is not green** — any required job failing, pending, cancelled, **or not
    reported at all**. No checks reported is red, never "nothing to fail". Re-poll before concluding
    the set is empty; checks absent within a minute of a push are usually a race.

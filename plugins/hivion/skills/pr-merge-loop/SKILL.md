@@ -94,6 +94,7 @@ merge-gate section, never from memory:
 - **Green signal** — the exact jobs that must report success, and the command that reads them.
 - **Risk-list paths** — the globs that escalate on any match, **and the matcher that resolves
   them**. Use the command the project states for resolving a PR's changed files against the block.
+  Note the change types an entry names beside its glob, such as "modified or deleted".
 - **Size threshold** — the declared line and file limits for the auto lane.
 - **Footprint enforcement** — on or off.
 - **Enforcement mechanism** — whether the host enforces the checks server-side, or whether this
@@ -479,6 +480,11 @@ Record the PR's head commit SHA before you start. The classification belongs to 
 1. **Risk-list path.** Resolve the changed files against the risk-list globs, using the matcher
    and the command CONFIG resolved. Name every file that matches. A green signal does not clear
    this condition. A project that names no matcher makes this condition unevaluable, so it fires.
+   Where a matching entry names change types, read each file's change type:
+   `git diff --name-status --no-renames origin/<BASE>...<SHA>`. That form lists a rename as a
+   deletion and an addition. A file whose change type the entry does not name clears this entry.
+   An entry that names no change type covers every change type. Treat an unreadable change type as
+   covered (`CLAUDE.md` §6).
 2. **Green signal not green.** Read the check results (`gh pr checks <num>`). This condition fires
    on any required job that fails, is pending, is cancelled, or never reported.
 3. **Footprint stray.** Evaluate this condition only where CONFIG found footprint enforcement on.
