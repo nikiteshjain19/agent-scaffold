@@ -5,7 +5,7 @@
   "description": "Lint tooling for the agent-scaffold documents. Nothing here is published to npm.",
   "license": "MIT",
   "scripts": {
-    "lint": "markdownlint-cli2"
+    "lint": "markdownlint-cli2 && node .github/scripts/check-decision-ids.mjs"
   },
   "devDependencies": {
     "markdownlint-cli2": "0.23.3"
