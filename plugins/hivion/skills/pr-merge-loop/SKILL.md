@@ -777,7 +777,10 @@ you touch anything.
 - **R2 — the PR body no longer describes the diff** (pre-merge check 7). The repair is the body,
   and it needs no commit.
 - **R3 — a correctness defect in the diff** (pre-merge check 1): a bug, an unchecked
-  silent-failure result, or a missing error path.
+  silent-failure result, a missing error path, or an unjustified line. An unjustified line matches
+  a shape in `CLAUDE.md` §4, "Justify every line you write". Remove that line. Inline a helper with
+  one caller into that caller. Never remove a line the acceptance criteria name explicitly. Such a
+  line is not filler. Escalate a line when you cannot tell whether it matches a shape.
 - **R4 — a required test is missing** (`CLAUDE.md` §11 rules 1–3): nothing asserts the changed
   behaviour, or the failure branch is untested.
 - **R5 — a document this change makes false** (`CLAUDE.md` §5 rule 6) that the issue's declared
