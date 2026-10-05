@@ -249,8 +249,10 @@ fail-closed default.
 
 Follow `CLAUDE.md` like any other change. The adoption is itself a ticket and a pull request.
 
-1. **Create the adoption ticket** in the tracker the owner confirmed. Put the reconciliation table in
-   its body. Leave out every secret value.
+1. **Create the adoption ticket with the `issue-writer` skill** (`CLAUDE.md` §2), in the tracker the
+   owner confirmed. The owner approved the adoption, so that skill's pre-approved path may apply. Its
+   own conditions decide, in its "5. PRESENT THE PLAN". Put the reconciliation table in the ticket's
+   body. Leave out every secret value.
 2. **Branch from the default branch**, per `CLAUDE.md` §3.
 3. **Write `PROJECT.md`** to the shape in GENERATED PROJECT.md. Write what the repository does today.
    Where the owner wants something the repository does not do, record a gap. Never record the wish
