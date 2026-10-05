@@ -125,7 +125,8 @@ Read `PROJECT.md` at the repo root and resolve, once per run:
 - **BASE branch** — the merge target.
 - **Green signal** — the exact jobs that must report success. Take the list from the project's
   merge-gate section, never from memory.
-- **Risk-list paths** — the globs that escalate on any match, green signal or not.
+- **Risk-list paths** — the globs that escalate on any match, green signal or not. Note the
+  change types an entry names beside its glob, such as "modified or deleted".
 - **Size threshold** — the declared line and file limits for the auto-merge tier.
 - **Footprint enforcement** — on or off.
 - **Tracker and issue-id format** — enough to find this pull request's ticket.
@@ -242,6 +243,11 @@ fired ones hides which ones you skipped.
 
 1. **Risk-list path.** Match every changed file against the risk-list globs from §1. Name each
    file that matches. A fully green signal does not clear this condition.
+   Where a matching entry names change types, read each file's change type:
+   `git diff --name-status --no-renames origin/<BASE>...<SHA>`. That form lists a rename as a
+   deletion and an addition. A file whose change type the entry does not name clears this entry.
+   An entry that names no change type covers every change type. Treat an unreadable change type as
+   covered (`CLAUDE.md` §6).
 2. **Green signal not green.** Read the check results. This fires on any required job that fails,
    is pending, is cancelled, or never reported. Re-poll once before you conclude the set is
    empty. Treat no checks reported as red, never as nothing to fail.
