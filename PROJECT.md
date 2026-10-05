@@ -123,7 +123,7 @@ tier only.
 
 ### Parallelism
 
-- **Max lanes:** 3 concurrent issues.
+- **Max lanes:** 5 concurrent issues.
 - Two issues may share a lane group only if their declared file footprints do not intersect.
 - **Max cycles per run:** 5.
 - **Max repair rounds per pull request:** 3.
