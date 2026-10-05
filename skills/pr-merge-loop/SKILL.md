@@ -1021,15 +1021,23 @@ safety (`CLAUDE.md` §6).
 ### A RELAYED VERDICT — accept the one your caller already holds
 
 Your caller may hand you a verdict it obtained itself. Accept that verdict, and dispatch no
-reviewer. The block arrives in this shape:
+reviewer. The block is the verdict the `pr-reviewer` skill returns, unchanged. That skill's RETURN
+THE VERDICT section owns the shape (D-5). The block arrives like this:
 
 ```text
 VERDICT       <approve | escalate | reject>
 PR            <N>
 HEAD          <SHA the verdict belongs to>
 INDEPENDENCE  <what the reviewer established, from its own INDEPENDENCE phase>
-FINDINGS      <the reviewer's findings, unchanged>
+FINDINGS
+  <the reviewer's findings, unchanged>
+ADVISORY      <the reviewer's non-blocking notes, unchanged>
 ```
+
+- **`FINDINGS`** is a block. It is every indented line beneath the `FINDINGS` line, down to the
+  `ADVISORY` line.
+- **Never relay `ADVISORY` to a repairer.** A note is never a finding. The `cycle-manager` skill's
+  C3 never carries it either.
 
 Read a relayed verdict under these four rules, in order.
 
