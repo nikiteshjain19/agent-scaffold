@@ -226,8 +226,8 @@ adds or changes for each shape:
 - Quote each matching line, with its file and line number. Name the shape it matches, by number.
 - Record check 1 as `fail` when any line matches.
 - Never judge the code around the diff.
-- Skip each exemption the rule names: a tested guard, a test, documentation that says more than
-  its code, and document prose.
+- Skip each exemption the rule names: a line the acceptance criteria name explicitly, a tested
+  guard, a test, documentation that says more than its code, and document prose.
 - Record check 1 as `unevaluable` when you cannot tell whether a line matches.
 
 Record an outcome for each check: `pass`, `fail`, or `unevaluable`. **A check you cannot evaluate
