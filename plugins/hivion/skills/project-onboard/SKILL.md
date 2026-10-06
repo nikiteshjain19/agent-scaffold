@@ -55,13 +55,17 @@ is the honest outcome for a project with a flaky suite. It is not a failed adopt
 **Spec the existing backlog on pickup, never in bulk.** The loop skills need acceptance criteria and
 a declared footprint. A normal backlog has neither. Rewriting hundreds of issues is not adoption.
 Mark the backlog not loop-eligible (see WRITE, step 5). Spec each issue when someone picks it up.
+**Name who clears the pre-adoption signal:** a human, or an agent with the owner's go-ahead for that
+issue, rewrites the body to the `issue-writer` skill's anatomy, then removes the signal.
 
-**Open pull requests predate the gate.** Let each one land under the old rules, or close it. Never
-retrofit the escalation conditions of `CLAUDE.md` §6 onto a pull request opened before adoption.
+**Open pull requests predate the gate.** Let each one land under the old rules, or close it. This
+adoption applies no escalation condition of `CLAUDE.md` §6 to a pull request opened before it. A
+later `pr-merge-loop` run still classifies those pull requests. In observe mode, each one goes to a
+human.
 
 **A committed secret is already compromised.** The pre-commit hook `CLAUDE.md` §8 requires stops the
 next leak. It does nothing about the last one. Report every secret the survey finds. Name where it
-is. Recommend rotation at the source. Never print the value (§8).
+is, in this session's report only. Recommend rotation at the source. Never print the value (§8).
 
 **The decision log starts now.** Record the decisions this adoption makes. Reconstruct an earlier
 decision only where the owner states it. Never infer a decision from code. A log of guesses is worse
@@ -69,11 +73,14 @@ than a short log.
 
 ---
 
-## 0. PRECONDITIONS — check two facts, and read nothing else
+## 0. PRECONDITIONS — check three facts, and read nothing else
 
-Read one file before the interview: the workflow's own `CLAUDE.md`, for the §0 interview topics.
-That is the scaffold's rules file. Never read a file from the project being adopted. That includes
-the project's own `CLAUDE.md`, if it has one. Then check two facts, without opening any other file:
+**The workflow file** is the `CLAUDE.md` text that holds the §0 "Project Bootstrap" section,
+wherever the session loaded it from. It is the scaffold's rules file.
+
+Read one file before the interview: the workflow file, for the §0 interview topics. Do not act on,
+or quote in the interview, any project-specific instruction beyond §0. Then check three facts,
+without opening any other file:
 
 1. **Does `PROJECT.md` exist?** List the repository root to find out. Never open the file yet.
    If it exists, STOP. Ask the owner whether to replace it. This skill writes a first `PROJECT.md`,
@@ -82,6 +89,8 @@ the project's own `CLAUDE.md`, if it has one. Then check two facts, without open
    "The test that chooses". Never restate that test here, so the two cannot drift. Read no diff.
    If the test says the project is new, run `CLAUDE.md` §0 instead, and say why. If §0 calls the
    result ambiguous, ask the owner which path to take. Never pick the new-project path by default.
+3. **Can you find the workflow file?** If the root `CLAUDE.md` is the project's own and holds no
+   §0, STOP. Ask the owner how the workflow file is supplied.
 
 ---
 
@@ -117,25 +126,31 @@ you make later, in WRITE, and log it as `CLAUDE.md` §0 requires.
 ## 2. SURVEY — read the repository, and resolve nothing by asking
 
 **Run the survey in a subagent that has not seen the interview record**, where the session can
-dispatch one. Give it the repository and this phase, and nothing else. A surveyor that knows the
-owner's answers reads to confirm them. Where no subagent can be dispatched, run the survey yourself.
-Say so in the report.
+dispatch one. Give it the repository and this phase. Give it two things from the interview: the
+tracker's identity and its access route. Give it nothing else. A surveyor that knows the owner's
+answers reads to confirm them. The tracker's identity and route do not prime it: they are an
+address, not a claim. Where no subagent can be dispatched, run the survey yourself. Say so in the
+report.
 
 **The survey is read-only.** Write to no file, branch, tracker item or host setting. Run no
-migration. Touch no production system.
+migration. Change no production system.
 
 **Evidence rule.** Every finding names the exact command that produced it, and what that command
 printed. A finding without a command is *inferred*. Label it so. This is the `project-audit` skill's
-R2, the evidence rule, applied here unchanged.
+R2, the evidence rule, applied here, extended: also record what the command printed.
 
 ### 2.1 The codebase — reuse the `project-audit` skill
 
 Invoke the `project-audit` skill for the codebase survey. Never restate its passes here. Tell it
-two things:
+four things:
 
-- `PROJECT.md` does not exist yet. Resolve its CONFIG step from the repository itself.
+- `PROJECT.md` does not exist yet. Resolve its section 0, "CONFIGURE FROM PROJECT.md", from the
+  repository itself.
 - Return its repository map, its Phase 0 artifacts, its architectural map and its coverage
   declaration. Those are survey evidence.
+- File no ticket. Return the action plan as a list.
+- Run only the read-only introspection the `project-audit` skill defines, and only with credentials
+  already present. Never request a credential.
 
 Take from its output the paths that carry risk and the integrations nobody may have named — a
 payment provider, a second datastore, a cron job, a feature-flag system, telemetry.
@@ -146,44 +161,73 @@ Establish each fact below. Record the command beside the result.
 
 1. **The real build, lint and test commands.** Read them from the repository's own scripts: the
    package manifest, the `Makefile`, the task runner. Never take them from the README alone.
-2. **Whether the test suite runs, and whether it passes.** Run it once, in a scratch worktree.
-   Record the exit code and the counts. Never run it when it needs a live service or a
-   credential. Record "not run", and why.
+2. **Whether the test suite runs, and whether it passes.** Apply these four rules, in order:
+   1. Read the test configuration first: the runner's configuration, every environment file it
+      loads, and the CI job that runs it.
+   2. When any of them points at a host that is not local, or reads a credential, record "not
+      run". Name the file and line that showed it.
+   3. Otherwise run the suite once, in a scratch worktree, in the credential-free environment
+      below. Record the exit code and the counts.
+   4. When the suite fails in that environment for want of a credential, record "not run", with
+      the error. Never retry it outside that environment.
+
+   The credential-free environment binds the test run in rule 3, and no other survey command.
+   Replace `<command>` with the test command:
+
+   ```sh
+   GHCFG="$(mktemp -d)"
+   env -u GH_TOKEN -u GITHUB_TOKEN -u GH_ENTERPRISE_TOKEN -u SSH_AUTH_SOCK \
+     GH_CONFIG_DIR="$GHCFG" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_TERMINAL_PROMPT=0 \
+     sh -c '<command>'
+   ```
+
+   Run every command in this environment. It removes the host CLI's token and its stored login,
+   git's credential helpers, and the SSH agent. For a host CLI other than `gh`, remove that CLI's
+   token and stored login the same way.
 3. **What CI runs.** Read every pipeline definition. Record each job, the events that trigger it,
    and what it actually executes. Read the recent run history on the default branch. Count the
    failures, and the failures that passed on a re-run.
 4. **What the host enforces today.** Read the default branch's protection or ruleset through the
-   host's API. Record each rule that exists. An empty answer means nothing is enforced.
+   host's API. Record each rule that exists. An empty answer means nothing is enforced. A
+   permission error means the enforcement is unverifiable. Record the error. Record the
+   enforcement mechanism as honoured only.
 5. **The paths that carry risk.** Map them against the categories of the default risk list in
-   `CLAUDE.md` §0. Cover migrations, auth, billing, entitlements, secrets, dependency manifests,
-   infrastructure, CI configuration and agent configuration. Name each path you found.
+   `CLAUDE.md` §0. Cover every category in both parts of `CLAUDE.md` §0's default risk list, and
+   every load-bearing document §0 asks about. Name each path you found.
 6. **The tracker's real vocabulary.** List its statuses, its labels and its priority model through
    the tracker's own CLI or API. Count the open issues.
 7. **Any committed secret, in the working tree or in history.** See 2.3.
 8. **The open pull requests and the long-lived branches.** List every open pull request with its
    age. List every remote branch with its last commit date.
+9. **The default branch.** Read it through the host's API, for example
+   `gh repo view --json defaultBranchRef --jq .defaultBranchRef.name`.
+10. **The allowed merge methods.** Read them through the host's API, for example:
+
+    ```bash
+    gh api repos/<owner>/<repo> \
+      --jq '{merge: .allow_merge_commit, squash: .allow_squash_merge, rebase: .allow_rebase_merge}'
+    ```
 
 ### 2.3 Secrets — find them without printing them
 
 Search the working tree and the full history for credential-shaped content. **Print locations,
-never matches.** Use a command whose output carries a path, a commit and a line number, and no
-matched text:
+never matches.**
 
-```bash
-# working tree — path and line number only
-git grep -n -I -E '<pattern>' | cut -d: -f1,2
-# history — commit and file names only, no patch
-git log --all -G '<pattern>' --format='%h %ad' --date=short --name-only
-```
+1. **Use a secret scanner with its redaction option on**, for example `gitleaks` with `--redact`.
+2. Run it against the working tree. Run it again against the full history.
+3. Record only each hit's path, commit and line.
 
-**Read the history output as locations to check, not as proof.** Git lists only the files whose diff
-matched the pattern. Never add `--pickaxe-all`. It lists every file a matching commit touched, so the
-report would over-name files. The `-G` option matches a removed line too. A hit can be the commit that
-deleted a secret. Never print the matched text to tell the two apart.
+**Read a history hit as a location to check, not as proof.** A hit can be the commit that deleted a
+secret.
 
-A secret scanner may replace these, but only with its redaction option on. Never open a matching
-line to "confirm" it. Never write a value to any surface `CLAUDE.md` §8 lists. Treat each hit as a
-committed secret until the owner says otherwise.
+**When no scanner is installed, record "secrets: not surveyed"** in 3.2 list 1. Recommend that the
+owner install one. Never substitute a pattern of your own. The survey installs nothing.
+
+**Why a scanner, and never an improvised pattern.** A scanner's rule set is maintained as
+credential formats change. An improvised pattern finds less, and its silence reads as "no secrets".
+
+Never open a matching line to "confirm" it. Never write a value to any surface `CLAUDE.md` §8
+lists. Treat each hit as a committed secret until the owner says otherwise.
 
 ---
 
@@ -230,7 +274,10 @@ Always include these decisions:
 - the observe-mode exit period (see GENERATED PROJECT.md);
 - what happens to each open pull request — land under the old rules, or close;
 - whether to apply the pre-adoption hold signal to the open backlog (see WRITE, step 5);
-- the existing agent instruction file, if the survey found one.
+- the existing agent instruction file, if the survey found one. Name the constraint in its options:
+  the workflow file keeps its path and its section numbers. Offer two options. The owner's content
+  moves into a separate file the workflow file links to, or into a section after the workflow
+  file's last numbered one.
 
 ### 3.3 Stop
 
@@ -248,9 +295,11 @@ fail-closed default.
 Follow `CLAUDE.md` like any other change. The adoption is itself a ticket and a pull request.
 
 1. **Create the adoption ticket with the `issue-writer` skill** (`CLAUDE.md` §2), in the tracker the
-   owner confirmed. The owner approved the adoption, so that skill's pre-approved path may apply. Its
-   own conditions decide, in its "5. PRESENT THE PLAN". Put the reconciliation table in the ticket's
-   body. Leave out every secret value.
+   owner confirmed. File it under that skill's bootstrap exception, in its §0. Give it the tracker
+   mapping the owner confirmed in RECONCILE. The owner approved the adoption, so that skill's
+   pre-approved path may apply. Its own conditions decide, in its "5. PRESENT THE PLAN". Put the
+   reconciliation table in the ticket's body. Leave out every secret value. Leave out every secret
+   location too. Write only "N locations reported to the owner on <date>, rotation pending".
 2. **Branch from the default branch**, per `CLAUDE.md` §3.
 3. **Write `PROJECT.md`** to the shape in GENERATED PROJECT.md. Write what the repository does today.
    Where the owner wants something the repository does not do, record a gap. Never record the wish
@@ -258,8 +307,13 @@ Follow `CLAUDE.md` like any other change. The adoption is itself a ticket and a 
 4. **Write one decision entry per decision** this adoption made, per `CLAUDE.md` §7. Include every
    "you decide" choice. Record an earlier decision only where the owner stated it.
 5. **Mark the open backlog not loop-eligible**, if the owner agreed. Declare a pre-adoption hold
-   signal in `PROJECT.md`, for example a `needs-spec` label. Apply it to each open issue that
-   predates adoption. Read back every result. Never assume a tracker call succeeded.
+   signal in `PROJECT.md`, for example a `needs-spec` label. Declare who clears it: a human, or an
+   agent with the owner's go-ahead for that issue, rewrites the body to the `issue-writer` skill's
+   anatomy, then removes the signal. Make no tracker write in this step. List the writes in the
+   pull request body as a post-merge step:
+   - after the adoption pull request merges, apply the signal to each open issue that predates
+     adoption;
+   - read back every result. Never assume a tracker call succeeded.
 6. **Close no pull request and no issue** unless the owner confirmed that item by id (`CLAUDE.md`
    §13).
 7. **Run the project's own gate**, as the survey found it. Open the pull request. Hand it to the
@@ -276,13 +330,13 @@ Use the section names the skills read (`CLAUDE.md` §0). A renamed section reads
 | Section | What it carries |
 | --- | --- |
 | **Product** | What the product is today, who it is for, and what ships next. |
-| **Toolchain** | The repo host, the CI, the hosting, the services, and the tracker mapping the `issue-loop` skill reads: how to reach the tracker, its real status names, its priority model, its id format, its dependency signal, its input-needed signal, and its hold signals — including the pre-adoption signal. |
+| **Toolchain** | The repo host, the CI, the hosting, the services, the base branch, the branch naming convention, and the merge strategy, including the stacked-parent merge-commit exception or "none". Then the tracker mapping the `issue-loop` and `pr-merge-loop` skills read: how to reach the tracker, the tracker scope, its real status names, the target state after merge, the merge-comment policy, its priority model, its id format and auto-link convention, its label vocabulary, its assignee convention, its dependency mechanism, its dependency signal, its input-needed signal, and its hold signals — including the pre-adoption signal. |
 | **Build / lint / test commands** | The commands the survey proved, and the pre-PR gate. Say which ones do not exist. |
-| **Merge gate** | Green signal, risk-list paths and how they are matched, size threshold, footprint enforcement, and the enforcement mechanism — what the host enforces and what is only honoured. |
+| **Merge gate** | Green signal and the command that reads it, risk-list paths and how they are matched, the command that resolves changed files against the risk list, size threshold, footprint enforcement, and the enforcement mechanism — what the host enforces and what is only honoured. |
 | **Parallelism** (inside Merge gate) | Max lanes, max cycles per run, and max repair rounds per pull request. |
 | **Milestones / build sequence** | What is in flight, and what must ship before what. |
 | **Constraints & working style** | Spend caps where the project calls a paid API (`CLAUDE.md` §10), compliance, secrets categories, and how much autonomy agents get. |
-| **Adoption** | The adoption date, observe mode and its exit criteria, what is grandfathered, the open pull requests and what happens to each, the reported secret locations, and every field still at its fail-closed default. |
+| **Adoption** | The adoption date; observe mode and its exit criteria; what is grandfathered; the open pull requests and what happens to each; the count of secret locations reported to the owner, the date, and whether rotation is pending; and every field still at its fail-closed default. |
 
 **Record how the risk-list patterns are matched**, for example "matched as gitignore rules
 (`gitignore(5)`)". The `pr-merge-loop` skill treats escalation condition 1 as unevaluable without a
@@ -300,7 +354,18 @@ every pull request. No skill needs a new rule to honour it.
 **Write the exit criteria into the Adoption section.** The `*` entry comes out only when both hold:
 
 1. **The green signal is trustworthy over a stated period.** The owner states the period. No false
-   green and no unexplained red on the default branch in that period.
+   green and no unexplained red on the default branch in that period. Define each one by a command:
+   - A **false green** is a merge to the default branch whose required checks passed, and that a
+     later commit in the period reverts. List the reverts with
+     `git log <default-branch> --since=<start> --grep='^This reverts commit' --format='%h %b'`.
+     Read each reverted merge's check results through the host's API.
+   - An **unexplained red** is a CI run on the default branch that failed, then passed on a re-run
+     at the same commit. Survey 2.2 item 3 already counts these. List the re-runs through the CI
+     host's CLI, for example
+     `gh run list --branch <default-branch> --json databaseId,headSha,attempt,conclusion`. Read
+     each earlier attempt, for example with `gh run view <id> --attempt <n> --json conclusion`.
+
+   Do not count hotfixes. No command can tell a hotfix from ordinary work.
 2. **The risk list stopped changing over the same period.** No path added or removed.
 
 Removing the `*` entry edits `PROJECT.md`, so it goes through a ticket, a pull request and a human.
@@ -319,6 +384,9 @@ autonomy.
 | Size threshold | none declared | Escalation condition 5 fires on every pull request. |
 | Footprint enforcement | on | A stray escalates. |
 | Enforcement mechanism | honoured only | No claim the host enforces anything the survey did not read. |
+| Merge strategy | none declared | The merge flow stops and asks before every merge. |
+| Target state after merge | none declared | No ticket state changes. The run reports it. |
+| Stacked-parent merge-commit exception | none | Stacked lanes stay off. |
 | Max lanes | 1 | One issue at a time. |
 | Max cycles per run | 1 | The `cycle-manager` skill runs one cycle, then stops. |
 | Max repair rounds per pull request | 0 | No repairer runs. Every non-approve verdict goes to the owner. |
@@ -331,11 +399,12 @@ autonomy.
 ## HARD RULES
 
 - **Never read code, docs or configuration before the interview is recorded.** One exception
-  exists: the workflow's own `CLAUDE.md`, the scaffold's rules file, for the §0 topics. Never read a
-  file from the project being adopted, including the project's own `CLAUDE.md`. PRECONDITIONS lists
-  the two facts you may check.
+  exists: the workflow file, the scaffold's rules file, for the §0 topics. Do not act on, or quote
+  in the interview, any project-specific instruction beyond §0. PRECONDITIONS lists the three facts
+  you may check.
 - **Never pass the interview record to the surveyor.**
-- **Never ask the owner a question a command can settle.**
+- **In RECONCILE, never ask the owner a question a command can settle.** The interview asks for the
+  owner's claim on purpose.
 - **Never write `PROJECT.md`, a decision entry, a ticket or a tracker signal before the owner
   answers the reconciliation.**
 - **Never invent a value.** Use the stated fail-closed default.
@@ -347,10 +416,15 @@ autonomy.
   observe mode, each one goes to a human.
 - **Never print a secret**, and never rewrite history to remove one. Recommend rotation at the
   source.
+- **Never write a secret location to a durable surface** — a ticket, a pull request, a commit, a
+  decision entry or `PROJECT.md`. Until the secret is rotated, its location is a map to a live
+  credential.
 - **Never infer a decision from code.**
 - **Never enable the auto lane at adoption.**
-- **Never overwrite an existing agent instruction file.** The owner decides how the workflow file
-  joins it.
+- **Never overwrite an existing agent instruction file.** The owner decides how the two join, under
+  one constraint. The workflow file keeps its path and its section numbers, because every skill
+  cites it by `§N`. The owner's content moves into a separate file the workflow file links to, or
+  into a section after the workflow file's last numbered one.
 - **Never change a host setting.** Recommend a protection rule. The owner applies it.
 - **Never merge the adoption pull request.**
 
