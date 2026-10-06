@@ -328,7 +328,7 @@ the decision log), treat the discrepancy as a finding.
    env -u GH_TOKEN -u GITHUB_TOKEN -u GH_ENTERPRISE_TOKEN -u SSH_AUTH_SOCK \
      GH_CONFIG_DIR="$GHCFG" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_TERMINAL_PROMPT=0 \
      sh -s <<'CHECKS'
-   <the test command> </dev/null
+   { <the test command>; } </dev/null
    echo "test: $?"
    CHECKS
    ```
