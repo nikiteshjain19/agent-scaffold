@@ -53,9 +53,10 @@ topic at a time, covering:
    hosting, database, payment/email/other services, and the exact commands for build, lint,
    and test. For the tracker, capture enough for an agent to drive it unattended: how the
    agent reaches it (MCP connector / CLI / API), this tracker's real status names
-   (Backlog / Todo / In Progress / In Review / Done), its priority model, and its
-   issue-id + PR auto-link convention. The `issue-loop` skill reads exactly this mapping, so
-   record it in `PROJECT.md` in enough detail to run the loop.
+   (Backlog / Todo / In Progress / In Review / Done), its priority model, its
+   issue-id + PR auto-link convention, its dependency mechanism (native relations or text), its
+   dependency signal, and the owner's identity on the tracker. The `issue-loop` skill reads exactly
+   this mapping, so record it in `PROJECT.md` in enough detail to run the loop.
 3. **Branching** — default branch name, branch naming convention, who merges (default: the two
    tiers of §6 — an escalated PR merges only after explicit per-PR human approval, a PR that trips
    no escalation condition may merge after an independent approve, and no agent merges its own PR).
@@ -132,6 +133,7 @@ Then generate, commit (via a ticket + PR like any other change), and keep mainta
   **Use the section names the skills read.** Name them "Toolchain", "Build / lint / test
   commands" and "Merge gate", with a "Parallelism" section inside "Merge gate". Skills find
   these sections by name, so a renamed section reads as a missing one.
+  File the ticket that writes this file under the `issue-writer` skill's bootstrap exception.
 - **`decisions.d/`** — the decision log, one file per decision, seeded from any decisions made
   during the interview (see §7 for format). Read it by reading the directory.
 - Initial milestones and tickets in the tracker, with dependencies linked (§5). File each ticket
@@ -168,9 +170,10 @@ decision in `decisions.d/` so it is visible and reversible.
 ## 2. Ticket workflow
 
 - **Every piece of work has a ticket** — features, bugs, refactors, docs, config. Create the
-  ticket before you start work. Create every ticket with the `issue-writer` skill. Never write a
-  ticket by hand. The loop skills read only the headings that skill writes. When this session
-  cannot invoke the skill (§12), stop and ask the user. Never fall back to a hand-written ticket.
+  ticket before you start work. Create every ticket with the `issue-writer` skill. The ticket that
+  writes `PROJECT.md` uses that skill's bootstrap exception. Never write a ticket by hand. The loop
+  skills read only the headings that skill writes. When this session cannot invoke the skill
+  (§12), stop and ask the user. Never fall back to a hand-written ticket.
 - **Mark the ticket "In Progress" the moment work starts** — before the first commit, not
   after. Don't batch status updates to the end.
 - **Mark it "Done" only when the PR is merged** (or, for non-code tickets, when the deliverable

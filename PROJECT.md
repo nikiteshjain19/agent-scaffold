@@ -46,11 +46,15 @@ Local convenience tooling belongs in a private repository, not here.
 - **Target state after merge:** closed, through `Closes #N` in the PR body.
 - **Priority model:** labels — `priority:high`, `priority:med`, `priority:low`. Exactly one per open
   issue. An absent label means `priority:med`, never "no priority".
+- **Dependency mechanism:** text — "Blocked by #N" in the issue's Dependencies section, plus the
+  dependency signal. GitHub's native blocked-by relations exist, and this project does not use them.
 - **Dependency signal:** the `blocked` label. It means at least one blocker is still open. The merge
   flow clears it in its post-merge sweep.
 - **Input-needed signal:** the `needs-input` label. It means a human owes this issue an answer. Only
   a human clears it.
 - **Hold signals:** `blocked` and `needs-input`, and nothing else.
+- **Owner identity:** `nikiteshjain19` on GitHub. Only a comment this account wrote counts as the
+  owner's approval.
 - **Issue-id format:** `#N`. GitHub auto-links it, and `Closes #N` closes it.
 - **Merge-comment policy:** on merge, comment the PR URL and the squash SHA on the issue.
 
