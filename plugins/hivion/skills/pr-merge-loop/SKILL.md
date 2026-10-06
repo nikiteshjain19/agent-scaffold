@@ -145,6 +145,90 @@ not earned.
 
 ---
 
+## SINGLE-PR MODE — a caller dispatches one pull request
+
+A caller may run this skill against one pull request. The `cycle-manager` skill does so with its C5
+brief (scaffold D-6). Enter this mode only when the invocation names one pull request and asks for a
+`CYCLE-MERGE-RESULT` block. Every other invocation runs the full loop from SETUP.
+
+**This mode writes to one pull request, its ticket, and the tickets that ticket blocked.** It writes
+no commit. It resolves no conflict and makes no repair. A conflict or a defect stops the merge, and
+the PR stays open.
+
+**PROBE still runs in this mode, scoped to its one PR.** Step 5 below says what that scope keeps.
+
+Run these steps in order. **A step that stops this mode skips to step 9**, so every stop returns
+the `CYCLE-MERGE-RESULT` block.
+
+1. Read the PR number from the invocation. Stop when the invocation names no number, or names more
+   than one, and report why.
+2. Read the verdict block in the invocation under A RELAYED VERDICT, and apply its four rules.
+   Dispatch no reviewer. Stop when no verdict block is present, because condition 6 is then met.
+   Stop on a void verdict too, and report why.
+3. Print one line that names this mode, says it skips SETUP's batch listing, and says PROBE runs
+   scoped to this PR.
+4. List the open PRs once, read-only: `gh pr list --state open --limit 1000 --json number,baseRefName,headRefName`.
+   Hold this PR, and merge nothing, when any check finds a hit.
+   - **A base that is not BASE.** This PR's `baseRefName` is not BASE, so a merge would land on that
+     branch and never reach BASE. This covers a child whose parent merged but was never retargeted
+     (STACKED PAIRS). Only a full run retargets it.
+   - **A stacked child.** This PR's base is another open PR's head branch. Hold this PR under
+     STACKED PAIRS.
+   - **A parent with an open child.** Another open PR's base is this PR's head branch. Retargeting
+     that child would write to another PR, so this mode never merges the parent.
+5. Run PROBE, scoped to this PR. It stays read-only. With no other open PR, its cross-batch steps
+   degenerate exactly as the queue-size rule in PROBE says.
+   - Run step 1 for this PR and for every other open PR. Run step 2 for this PR.
+   - Run step 4, the SCHEMA CHECK, for this PR. Send this PR to the escalate lane when it flags
+     drift, and carry the flag onto the review card.
+   - Run step 3, the CROSS-DIFF PASS, for every pair that includes this PR. Hold this PR, and merge
+     nothing, on any finding: a semantic conflict, a duplicate, an ordering hazard or a file
+     overlap. Treat that pair as a locked pair under the HARD STOP in the escalate lane. Ask in
+     place, and classify nothing.
+   - Skip pairs that exclude this PR. They do not change whether this PR may merge.
+   - Skip step 5's risk map, its revised order and the order question. This mode merges one PR, so
+     no order exists to decide. Print step 2's risk note for this PR instead.
+   - Print one line naming the steps and the pairs this scope skipped, as the queue-size rule does.
+6. Run `git fetch origin` so BASE is current, then run CLASSIFY for this PR alone, and print its
+   reason. CLASSIFY reads the change type against the fetched BASE.
+7. Run CONFLICT's classification for this PR. Print the class and its reason. Resolve nothing,
+   whatever the class, because a resolution is a commit. Any conflict with BASE stops this mode.
+   Close it with one ASK block, and queue that block (`CLAUDE.md` §13).
+   - An `intent` conflict takes CONFLICT's ASK block, which asks which side the project wants.
+   - A `mechanical` conflict asks whether to leave this PR for a full run, which resolves it on the
+     branch.
+8. Choose the lane, and run the merge steps only when the lane allows them.
+   - **Auto lane**, when CLASSIFY says `auto`, the relayed verdict is `approve`, and step 5 flagged
+     no schema drift. AUTO LANE steps 1 to 8 are covered by steps 1 to 7 above, with step 1's fetch
+     run in step 6. Run AUTO LANE steps 9 to 15 in order.
+   - **Escalate lane**, otherwise. Run the REVIEW RECORD phase, then build the review card and print
+     it. A contradiction or a destructive action is asked in place instead. Merge only when the
+     user's verbatim answer approves this PR under the approval gate in `CLAUDE.md` §6. "Not yet
+     approved", silence, and an answer about another PR are not approval. On approval, run
+     escalate-lane steps a and b first, and merge nothing if either one stops. An approval does not
+     override the authorship check in step a. Then run escalate-lane steps c to g in order. Record the
+     card's merge question in the digest only when the answer does not approve this PR. An approved
+     PR queues nothing, because a merged PR has no question left to ask.
+9. When this PR merged in the auto lane, print its WHAT IT DOES block first, as AUTO LANE step 19
+   requires. The escalate lane's card already carries the report of its merge. After a stop, print
+   the reason for it first. Then return the block below. Then print the FINAL SUMMARY row and the
+   DIGEST for this PR, in their own shapes.
+
+```text
+CYCLE-MERGE-RESULT
+merged      <this PR number when it merged, or none>
+still-open  <this PR number when it did not merge, or none when step 1 found no single number>
+queued      <1 when this run queued a question in the digest: a conflict question, or a merge question the answer did not approve; 0 otherwise, including when the PR merged on approval>
+hard-stops  <this PR number when its question was asked in place, or none>
+```
+
+A question is either queued or asked in place, never both. A PR held for a base that is not BASE, a
+held stacked child, a held parent, and a stop in step 2 count as still-open and queue no question. A
+stop in step 1 writes `none` in `merged`, `still-open` and `hard-stops`, and 0 in `queued`. The
+`cycle-manager` skill reads this block, so print its four field names exactly as written.
+
+---
+
 ## SETUP (run once)
 
 1. List open PRs targeting BASE:
@@ -299,8 +383,9 @@ other stop is a decision request by definition, so its ASK block is never option
 SUMMARY.
 
 **The PROBE order approval is not a stop at a queue of one open PR.** One PR has one order, so the
-phase reaches no order decision and ends with no ASK block. That is the only case the PROBE stop
-does not occur, and PROBE itself still runs. See the queue-size rule in PROBE.
+phase reaches no order decision and ends with no ASK block. SINGLE-PR MODE reaches none either,
+because it merges one PR. Those are the only two cases the PROBE stop does not occur, and PROBE
+itself still runs in both. See the queue-size rule in PROBE.
 
 Print these parts, in this order, and nothing else:
 
@@ -373,6 +458,10 @@ sets which steps run.
 
 - **Two or more open PRs:** run every step below, in full.
 - **Exactly one open PR:** run steps 1, 2 and 4. Skip step 3. Skip step 5. Skip step 6.
+
+**SINGLE-PR MODE scopes PROBE to its one PR, and that is the one exception to the full run.** It
+runs step 4 for its PR, and step 3 for every pair that includes its PR. It skips the pairs that
+exclude its PR, and step 5's risk map and order. Its step 5 says what runs. It never skips the phase.
 
 **PROBE always runs. Only its cross-batch steps degenerate.** Never read this rule as licence to
 skip the phase. The threshold is **2**, and it is the smallest queue that holds a pair.
@@ -451,6 +540,7 @@ ASK — Shall I work the PRs in this order: #133, #117, #140?
 
 **PROBE is mandatory, and it stays read-only.** It runs before CLASSIFY and before either lane, at
 every queue size. A queue of one degenerates its cross-batch steps and skips none of the phase.
+SINGLE-PR MODE scopes it to one PR, and skips none of the phase either.
 A locked pair is never auto-merged, whatever its classification.
 
 **PROBE records a conflict. It resolves none.** Resolving is a write, and this phase writes
@@ -1506,15 +1596,16 @@ states which of the two situations applies. Read that field in CONFIG and report
   review card and the FINAL SUMMARY. The FINAL SUMMARY is the only one that may end without a
   block, and only when the
   run left nothing waiting on the user. A queued block is re-printed in the DIGEST, never rewritten.
-  **The PROBE order approval is not a stop at a queue of one open PR**, because one PR has one
-  order. That is the one exception, and PROBE still runs.
+  **The PROBE order approval is not a stop at a queue of one open PR, or in SINGLE-PR MODE**,
+  because one PR has one order. Those are the only exceptions, and PROBE still runs in both.
 - **One decision per ASK block.** Never compound two questions into one. Ask the second question
   after the user answers the first.
 - **PROBE is mandatory** and happens before CLASSIFY and before any merge — never skip it to save
   time. A per-PR gate alone surfaces problems just-in-time; PROBE surfaces batch-wide problems up
   front. Both run. **Degenerating is not skipping.** A queue of one open PR runs steps 1, 2 and 4
   and drops the cross-batch steps, because a pair is what they read. A queue of two or more runs
-  every step, and no queue size lets you skip the phase.
+  every step, and no queue size lets you skip the phase. SINGLE-PR MODE scopes the phase to its
+  one PR — the schema check and every pair that includes that PR — and never skips it.
 - **HARD STOP on locked pairs:** if two (or more) PRs are flagged as semantically conflicting,
   NEITHER may be merged in either lane until the user explicitly declares which wins. This
   overrides the merge order and the classification — a locked PR is skipped, not merged, no matter
@@ -1660,4 +1751,5 @@ ASK — Shall I bring #117 back for review now that #133 has merged?
 
 ---
 
-When invoked, **start with CONFIG then SETUP.**
+When invoked, **start with CONFIG. Then take SINGLE-PR MODE when the invocation names one pull
+request and asks for a `CYCLE-MERGE-RESULT` block, and SETUP otherwise.**
