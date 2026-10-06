@@ -1,26 +1,25 @@
 ---
 name: cycle-manager
 description: >-
-  Run the backlog in one session, cycle after cycle. Each cycle dispatches a wave of issues,
+  Run the backlog in one session, cycle after cycle. Each cycle dispatches one wave of issues,
   drives every pull request that wave opens to a finished state through independent review
   and bounded repair, presents one digest of what needs the user, carries each answer into a
   merge, and then starts the next cycle from what those merges unblocked. It composes the
   `issue-loop`, `pr-reviewer` and `pr-merge-loop` skills and re-decides none of their rules.
-  Every agent it uses is a sibling it dispatched — builder, reviewer, repairer, fresh
-  reviewer, merger — and nothing is nested, so a session that cannot spawn an agent from
-  inside an agent runs it unchanged. It merges nothing, reviews nothing, repairs nothing,
-  writes to no branch and writes to no tracker. Tool-agnostic: the tracker, the merge gate,
-  the lane budget, the cycle cap and the repair-round cap are read from PROJECT.md, never
-  hard-coded. Use when the user says "run the backlog until it stops moving", "keep working
-  the queue", "work the backlog and merge what is ready", or similar.
+  Every agent it uses is a sibling it dispatched, and nothing is nested. It merges nothing,
+  reviews nothing, repairs nothing, and writes nothing outside the `issue-loop` skill's own
+  coordinator steps. Tool-agnostic: the tracker, the merge gate, the lane budget, the cycle
+  cap and the repair-round cap are read from PROJECT.md, never hard-coded. Use when the user
+  says "run the backlog until it stops moving", "keep working the queue", "work the backlog
+  and merge what is ready", or similar.
 ---
 
 # Cycle Manager (tracker- and host-agnostic)
 
 You are a **relay with a bar**. You run one cycle after another in a single session. In each cycle
-you produce a wave of pull requests and drive each one to a finished state. You send every finished
-pull request to a merger. A pull request with a question reaches its merger through one digest,
-with the user's answer. Then you ask whether the cycle changed anything.
+you dispatch one wave, which opens pull requests, and you drive each one to a finished state. You
+send every finished pull request to a merger. A pull request with a question reaches its merger
+through one digest, with the user's answer. Then you ask whether the cycle changed anything.
 
 You sequence other agents. You re-decide none of their rules. Lanes, waves, classification,
 conflict handling, the eight escalation conditions, the seven pre-merge checks, the repairable list,
@@ -35,7 +34,8 @@ That is the gate working, not a gap to widen.
 ## THE BAR — the one rule everything else follows from
 
 > **The manager never merges, never reviews, never repairs, never writes to a branch, and never
-> writes to the tracker. Every write happens inside a subagent the manager dispatched.**
+> writes to the tracker. Every write happens inside a subagent the manager dispatched, except the
+> one named exception below.**
 
 You hold every agent's report, so you are contaminated by construction. That is harmless while you
 only relay. It is disqualifying the moment you write.
@@ -43,9 +43,23 @@ only relay. It is disqualifying the moment you write.
 **Read the bar as a rule about your own writes.** You may present, ask, record in the run and
 report. You may not produce the artifact.
 
-**One boundary is easy to misread, so it is named here.** You run the `issue-loop` skill in this
-context, and that skill's coordinator claims each issue in its wave. Those writes are that skill's
-own, and you add nothing to them. Outside them you write no status, no comment and no signal.
+**The `issue-loop` coordinator's writes are the one named exception to the bar.** You run that
+skill in this context, so its coordinator is you. The agent the bar calls contaminated makes these
+writes:
+
+- the claim on each issue it dispatches: the status, the assignee and the "picking this up" comment;
+- the lane branches, and the worktrees it creates and removes;
+- the release of a bounced claim: the status and the assignee it resets;
+- its configuration stop, in that skill's §0.
+
+**Why the exception is needed.** Dispatching the `issue-loop` skill as a subagent would nest its
+builders under that subagent. That breaks THE TOPOLOGY below.
+
+**Why the exception is acceptable.** None of these writes is content that reaches a diff, a brief or
+a verdict. Every line of code is still written inside a dispatched lane.
+
+Make those writes exactly as that skill states them, and add nothing to them. Outside them you write
+no status, no comment and no signal.
 
 ---
 
@@ -89,10 +103,21 @@ it is going.
 - **To a merger: the pull-request number, the verdict verbatim, and the user's answer verbatim.**
   The answer names the pull request and the head commit it was given for. Nothing else.
 
-**Adding anything to C1 or C5 destroys the property silently.** Every artifact of the run still looks
-correct. A brief is the only channel into the agent it addresses, so text added "to help" is
-reasoning that agent was built not to hold. Never add a field to either brief. Never summarise the
-change inside one.
+**Adding anything to C1, C3 or C5 destroys the property silently.** Every artifact of the run still
+looks correct. A brief is the only channel from this run into the agent it addresses, so text added
+"to help" is reasoning that agent was built not to hold. Never add a field to any of the three
+briefs. Never summarise the change inside one.
+
+**State the guarantee that holds, and no wider one.** The briefs keep this run's context away from
+a reviewer: no builder report, no repairer justification, no earlier verdict and no round number.
+They do not keep the author's account away. The reviewer reads the pull request's title and body
+from the host, and the builder wrote both.
+
+- **The body is the author's account.** The reviewer checks it against the diff, under the
+  `pr-reviewer` skill's pre-merge check 7, body freshness.
+- **The host reads are that skill's to limit.** Its §0 rule that independence also covers what a
+  reviewer reads on the host governs them.
+- **Never call the body input you vouch for.** You pass it to no one, and you do not check it.
 
 ---
 
@@ -171,27 +196,39 @@ Head commit:  <SHA>
 Round:        <n> of <cap>
 Findings to repair, verbatim from the review:
 <the FINDINGS block from C2: every indented line beneath FINDINGS, unchanged>
-Follow the REPAIR phase bounds of the pr-merge-loop skill in full. Repair nothing outside them.
+Follow REPAIR bounds 1 to 9 and 12 of the pr-merge-loop skill, and its "Leave the record" section.
+Do not run bounds 10 and 11. They belong to a full pr-merge-loop run.
+Repair nothing outside these bounds.
 Return a REPAIR-RESULT block.
 ```
 
 Frozen property: the findings travel verbatim, and the bounds are cited rather than restated. The
 `ADVISORY` field never travels.
 
+**Bounds 10 and 11 are left out because they work only inside a full `pr-merge-loop` run.** Bound 10
+re-runs that run's CLASSIFY, and bound 11 sends the pull request to that run's escalate lane. This
+skill sends the repaired head to a fresh reviewer instead (DRIVE step 9).
+
 ### C4 — the repair return (repairer to manager)
 
 ```text
 REPAIR-RESULT
 round     <n>
-outcome   <pushed | discarded | refused>
+outcome   <pushed | discarded | refused | escalated <bound n>>
 head      <new SHA, or unchanged>
 repaired  <each finding, and the shape it matched>
 declined  <each finding not repaired, and why>
 gate      <each command run, and the status read>
 ```
 
-`discarded` means the gate failed and `REPAIR` bound 5 applied. `refused` means a gate in that phase
-forbade the repair. Both stop the loop for this pull request, and neither is retried.
+- **`discarded`** means the gate failed and `REPAIR` bound 5 applied.
+- **`refused`** means a gate in that phase forbade the repair.
+- **`escalated <bound n>`** means the repairer stopped and escalated under bound `n`. Write
+  `escalated 3` for a repair that needs a file outside the footprint. Write `escalated 9` for a
+  check that is not green on the new head. Write `escalated 1` for a pass whose record failed to
+  post, because bound 1 requires a record for every pass.
+
+All three stop the loop for this pull request, under predicate 4, and none is retried.
 
 ### C5 — the merge brief (manager to merger)
 
@@ -242,9 +279,9 @@ Never commit it, and never write it to a tracked file (`CLAUDE.md` §13).
 ```text
 Stop a pull request's review-repair loop when ANY holds.
   1. The reviewer returns approve.
-  2. The round count reaches the project's cap.
-  3. The same finding survives two consecutive rounds.
-  4. A repair returns discarded or refused.
+  2. The count of completed repairs reaches the project's cap.
+  3. The same repairable finding survives two consecutive rounds.
+  4. A repair returns discarded, refused or escalated.
   5. The head commit moved under two of this pull request's verdicts in this run.
 Report which one stopped it, by name and by round number.
 
@@ -266,9 +303,17 @@ head check. A merger discards one when it stops on a void verdict. Report each d
 1. Invoke the `issue-loop` skill in this context. Let it select and dispatch its own wave.
 2. Change none of its rules. Wave selection, the disjointness test, the lane budget and the
    footprint policy are that skill's, and you re-decide none of them.
-3. Read its END OF RUN output. Record the terminal state it named, in the cycle record's `terminal`
-   field.
-4. Record every pull request the wave opened, in the cycle record's `opened` field.
+3. **Let that run take exactly one wave.** It runs its §1 once and dispatches that wave. It refills
+   nothing, and goes to END OF RUN once its dispatched lanes return. That skill states the same rule
+   for a run under this one.
+   - A wave member the lane budget left undispatched stays unclaimed. The next cycle's wave can
+     select it again.
+   - Read its END OF RUN output. Record the terminal state it named, in the cycle record's
+     `terminal` field.
+   - Hold its Escalation digest entries in the run, unchanged, beside the cycle record. Add no field
+     to C7. DIGEST presents them.
+4. Record every pull request the wave opened, in the cycle record's `opened` field. The run hands
+   them to you only after END OF RUN, never one at a time.
 5. Read the current head of every carried pull request. Sort each one as MERGE, "A carried pull
    request", says.
 6. Go to DRIVE with the wave's pull requests and every carried pull request whose head moved.
@@ -289,18 +334,38 @@ pull request keeps the round count it reached.
 1. **Dispatch one subagent to review the pull request**, using the `pr-reviewer` skill. Send C1, and
    nothing else.
 2. **Read the returned C2 block.** Read the pull request's current head commit SHA yourself.
+   Then record the decision log the verdict arrived against. Run `git fetch origin`. List the
+   filenames in `decisions.d/` on the default branch:
+   `git ls-tree --name-only origin/<default branch> decisions.d/`. Hold that list in the run, beside
+   the verdict. MERGE step 1 and step 3 of "A carried pull request" compare against it.
 3. **Discard a verdict whose `HEAD` does not equal that current head.** Count the move. Stop when
    this is the pull request's second move in this run — predicate 5. Otherwise re-dispatch a fresh
    reviewer on the current head. The round number does not advance.
 4. **Stop on `approve`** — predicate 1. Record the round number. Carry the verdict to MERGE's direct
    route.
-5. **Stop when the round count has reached the cap** — predicate 2. Carry the verdict to DIGEST.
-6. **Stop when the same finding survives two consecutive rounds** — predicate 3. Compare this
-   round's `FINDINGS` against the previous round's. Carry the verdict to DIGEST.
-7. **Dispatch one fresh subagent to repair the pull request.** Send C3, carrying this round's
-   `FINDINGS` verbatim.
-8. **Read the returned C4 block. Stop on `discarded` or `refused`** — predicate 4. Carry this
-   round's verdict to DIGEST. Never dispatch a second repairer at the same defect.
+5. **Stop when the count of completed repairs has reached the cap** — predicate 2. A completed
+   repair is a repair whose C4 block returned `pushed`. Carry the verdict to DIGEST. A cap of N
+   allows N repairs, and a cap of 0 allows none.
+6. **Stop when the same repairable finding survives two consecutive rounds** — predicate 3. Compare
+   this round's `FINDINGS` against the previous round's. A repairable finding is a check or
+   condition line that meets all three of these:
+   - it reads `fail`, `fired` or `unevaluable`;
+   - it matches a shape on the `pr-merge-loop` skill's REPAIR list, R1 to R5;
+   - it is not condition 6, and not a condition on that skill's "Never repair these" list.
+
+   Two lines are the same finding when both are repairable and both quote the same evidence. **When
+   you cannot tell whether two lines match, count them as the same finding.** The loop then stops,
+   and the pull request reaches the user, which is the fail-closed outcome (`CLAUDE.md` §6). Carry
+   the verdict to DIGEST.
+7. **Dispatch one fresh subagent to repair the pull request**, but only when this round's
+   `FINDINGS` hold at least one repairable finding, as step 6 defines it. Send C3, carrying this
+   round's `FINDINGS` verbatim.
+
+   **When `FINDINGS` hold no repairable finding, dispatch no repairer.** Stop the loop, and carry the
+   verdict to DIGEST. That stop finishes the pull request exactly as predicates 2 to 4 do. Name it
+   `no repairable finding`, with the round number, wherever this skill names a stop predicate.
+8. **Read the returned C4 block. Stop on `discarded`, `refused` or `escalated`** — predicate 4.
+   Carry this round's verdict to DIGEST. Never dispatch a second repairer at the same defect.
 9. **On `pushed`, advance the round number and return to step 1.** The next reviewer is a fresh
    agent that has read nothing about this pull request.
 
@@ -351,12 +416,27 @@ merger has returned.
 - **A merger's queued merge question.** A direct-route merger in this cycle queued it, or an
   earlier cycle carried it here. A stopped merger's question gets no entry (MERGE step 8).
 
-1. Say how many decisions the digest carries, in one sentence.
+1. Say how many decisions the digest carries, in one sentence. Count the `issue-loop` entries that
+   WAVE step 3 held, as well as the pull-request entries.
 2. Give one entry per pull request that needs the user. Group the entries by what the answer
    unblocks.
+
+   **Re-print the `issue-loop` skill's Escalation digest entries unchanged, as their own group.**
+   WAVE step 3 held them. Say what an answer to one of them does:
+   - you record the answer in the user's own words, in the run;
+   - you write nothing to the tracker, so the issue keeps its input-needed signal;
+   - only a human clears that signal, and the next cycle's `issue-loop` run reads it.
+
+   So an answer reaches the issue only when a human posts it there and clears the signal. Say so.
 3. Write each verdict entry in the shape the `pr-merge-loop` skill's `ASK BLOCK` section defines,
    and under the plain-language rule that skill states. Cite that shape rather than re-specifying
-   it.
+   it. Before each verdict entry's ASK block, print three things, so the approval it asks for is
+   valid (`CLAUDE.md` §6, approval gate rule 3):
+   1. **What the pull request changes**, in at most three bullets. Write them from
+      `gh pr view <n>` and `gh pr diff <n>`. THE BAR allows that reading. Nothing of it enters C1,
+      C3 or C5.
+   2. **The outcome of the seven pre-merge checks**, taken from the verdict's `FINDINGS` block.
+   3. **One bottom-line sentence** that names what decides the merge.
 4. Re-print a merger's queued question unchanged. Say which cycle a carried entry came from.
 5. Name the stop predicate that ended each pull request's loop, and the round number.
 6. Name the head commit each entry describes, from its verdict's `HEAD` field.
@@ -403,6 +483,20 @@ Run these steps for each pull request on either route. Dispatch one merger at a 
 1. **Read the pull request's current head commit SHA.** When it does not equal the verdict's `HEAD`,
    discard the verdict and count the move. Return the pull request to DRIVE step 1, unless
    predicate 5 now holds. Dispatch no merger on a void verdict.
+
+   **Then list `decisions.d/` again**, exactly as DRIVE step 2 did. Compare it with the list held
+   beside the verdict. You judge no decision, so a new decision sends the pull request back to a
+   reviewer:
+   - **A filename that was absent when the verdict arrived means the verdict predates a
+     decision.** Send the pull request to DRIVE step 1 for a fresh review. Dispatch no merger. The
+     fresh reviewer's pre-merge check 2 decides whether the decision touches it.
+   - **The pull request then takes the route its new verdict names.** An answer given on the old
+     verdict does not carry over. Ask it again in the next digest.
+   - **This re-review is neither a head move nor a round.** Predicate 5 does not count it, and the
+     round number does not advance. It is bounded, because a decision entry reaches the default
+     branch only through a merge.
+   - **When you cannot list the directory, dispatch nothing for that pull request.** Name it in the
+     run report.
 2. **Dispatch one subagent to run the `pr-merge-loop` skill against that pull request.** Send C5.
 3. **Carry the C2 verdict block unchanged**, and the user's answer verbatim. Write `not yet
    approved` on the direct route, and where the user has not answered. Write `none` for the head
@@ -451,8 +545,10 @@ carried question. Carry its pull request into the next cycle. Never answer its q
 1. Hold its C2 verdict block, the merger's queued question when there is one, and the cycle it came
    from. Hold them in the run, and nowhere else (`CLAUDE.md` §13).
 2. Read its current head at the next cycle's WAVE step 5.
-3. **When the head equals the verdict's `HEAD`,** keep its entry for that cycle's digest. Re-print a
-   merger's question unchanged.
+3. **When the head equals the verdict's `HEAD`,** list `decisions.d/` again before you keep its
+   entry. Apply MERGE step 1's decision-log check. A filename absent when the verdict arrived drops
+   the entry and sends the pull request to DRIVE step 1, and that check's rules apply unchanged.
+   Otherwise keep its entry for that cycle's digest. Re-print a merger's question unchanged.
 4. **When the head has moved,** drop its entry, because the entry describes a head that no longer
    exists. Count the move. Send the pull request to DRIVE, unless predicate 5 now holds. It then
    takes the route its new verdict names.
@@ -508,8 +604,9 @@ the run report make it visible.
 
 - **Never merge, review or repair.** Dispatch an agent for each one.
 - **Never write to a branch, and never write to the tracker.** Every write is a dispatched
-  subagent's.
-- **Never add a field to C1, C3 or C5.** The briefs are the whole of the isolation guarantee.
+  subagent's, except the `issue-loop` coordinator's writes that THE BAR names as its one exception.
+- **Never add a field to C1, C3 or C5.** The briefs keep this run's context out of the agents
+  they address, but not the author's account the reviewer reads on the host.
 - **Never relay a verdict whose `HEAD` does not match the current head.** A void verdict authorises
   nothing.
 - **Never edit a verdict, a finding, an answer or a digest entry.** Relay each one verbatim.
@@ -519,9 +616,10 @@ the run report make it visible.
 - **Never disable, skip, delete or weaken a test**, whatever a finding says (`CLAUDE.md` §11
   rule 10).
 - **Never merge to resolve uncertainty, and never repair to resolve it either.** Report and stop.
-- **Same error twice → stop and report.** Record the blocker and move to the next pull request.
-- **Read the decision log before a cycle** (`decisions.d/`, `CLAUDE.md` §7). A decision can
-  invalidate an open issue or an open pull request.
+- **Same error twice → stop and report.** Record the blocker in the run report. Write nothing to
+  the tracker. Move to the next pull request.
+- **Send a verdict that predates a decision back to a reviewer**, under MERGE step 1's
+  decision-log check (`CLAUDE.md` §7).
 
 ---
 

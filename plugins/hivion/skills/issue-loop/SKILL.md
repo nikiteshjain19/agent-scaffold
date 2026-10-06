@@ -31,6 +31,8 @@ concrete tool calls using the **Tracker configuration** step first.
 4. Work one issue per lane, and open one PR per lane (§4).
 5. Hand each finished PR to the merge flow, then refill the lane (§6).
 6. Return to §1 until no issue is eligible.
+   Under the `cycle-manager` skill, a run replaces items 5 and 6: it selects one wave, refills
+   nothing, and hands its PRs off after END OF RUN.
 
 **Why waves.** Two issues may run at once only when their work cannot collide. Every issue
 declares its file footprint (`issue-writer` §4), so that question is a lookup, never a guess. The
@@ -400,6 +402,9 @@ Record the result in END OF RUN's `Claim released` column.
    repair and merge in the same session, and it starts its next cycle from what those merges
    unblocked. A run invoked on its own performs no hand-off: it hands its PRs to whatever the user
    runs next, and §1 step 10 still ends the run. **This loop still merges nothing itself** (§7).
+
+   **Under the `cycle-manager` skill, the run selects one wave, refills nothing, and hands its PRs
+   off after END OF RUN.**
 7. **A footprint stays reserved until its PR merges or closes.** A finished lane still owns its
    files, because the next branch cuts from a default branch that does not carry them yet.
    Refill a freed lane only with an issue disjoint from every in-flight lane **and** from the
