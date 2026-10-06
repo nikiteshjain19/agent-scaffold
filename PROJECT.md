@@ -30,10 +30,13 @@ Local convenience tooling belongs in a private repository, not here.
 | **Issue tracker** | GitHub Issues, same repo. "Ticket" = GitHub issue. |
 | **Base / default branch** | `main` |
 | **Branch naming** | `type/issue-id-short-desc`, e.g. `feat/12-plugin-hook` |
-| **Merge strategy** | Squash and delete the branch — `gh pr merge <n> --squash --delete-branch` |
+| **Merge strategy** | A merge commit, never a squash or a rebase. With no open PR based on the branch: `gh pr merge <n> --merge --subject "<PR title> (#<n>)" --delete-branch`. With one: the same command without `--delete-branch`. The branch stays until every PR based on it is retargeted, then the merge flow deletes it. |
 | **Who merges** | The two-tier gate in `CLAUDE.md` §6 decides, from the "Merge gate" section below. |
 | **CI** | GitHub Actions — `.github/workflows/lint.yml`, one job named `Markdown lint`. See "Build / lint / test commands". |
 | **Database / payments / LLM APIs** | None. `CLAUDE.md` §10 does not apply, and the database steps in the skills are reported not applicable. |
+
+**Stacked parent:** no exception is needed. The ordinary strategy already merges with a merge commit
+and keeps a branch that an open PR is based on (the `pr-merge-loop` skill, STACKED PAIRS).
 
 ### Tracker mapping (what the loop skills read)
 
@@ -56,7 +59,7 @@ Local convenience tooling belongs in a private repository, not here.
 - **Owner identity:** `nikiteshjain19` on GitHub. Only a comment this account wrote counts as the
   owner's approval.
 - **Issue-id format:** `#N`. GitHub auto-links it, and `Closes #N` closes it.
-- **Merge-comment policy:** on merge, comment the PR URL and the squash SHA on the issue.
+- **Merge-comment policy:** on merge, comment the PR URL and the merge commit SHA on the issue.
 
 ## 3. Build / lint / test commands
 

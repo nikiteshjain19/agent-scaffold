@@ -1,26 +1,18 @@
 ---
 name: pr-merge-loop
 description: >-
-  Review and merge open pull requests one at a time, sorted into two lanes by the
-  risk-tiered gate in CLAUDE.md §6, then update each merged PR's tracker ticket and
-  sweep the tickets that ticket blocked, clearing the dependency signal on every one
-  whose blockers are now all complete. A PR that trips any of the eight escalation
-  conditions waits for an explicit human approval; a PR that trips none may merge
-  after an independent reviewer approves it. The run records each waiting question
-  instead of stopping, and presents them all in one digest at the end.
-  Fail-closed: a condition it cannot evaluate counts as met. Tool-agnostic: the repo
-  host, base branch, merge strategy, green signal, risk-list paths, size threshold and
-  issue tracker (Linear, Jira, GitHub Issues, GitLab, etc.) are read from PROJECT.md,
-  not hard-coded. Runs a read-only PROBE first (cross-PR conflicts, schema drift, lock
-  list), at every queue size — at a queue of one open PR its cross-batch steps degenerate,
-  because they read a pair. Then it classifies every PR and prints the reason. Also classifies
-  every conflict against the base branch as mechanical or intent: it resolves a
-  mechanical one on the branch and re-checks it, and it escalates an intent one with
-  both sides named. It repairs a defect it finds — a failing check, a stale PR body, a
-  correctness bug, a missing test — on the branch itself rather than handing the PR back
-  to its author, and then hands that PR to a later session, because a repair makes this
-  run the branch's author. Use when the user says "review and merge the open PRs", "clear
-  the PR queue", "merge the backlog of PRs", or similar.
+  Review and merge open pull requests under the two-tier gate in CLAUDE.md §6, then
+  update each merged PR's ticket and sweep the tickets it unblocked. Use when the user
+  says "review and merge the open PRs", "clear the PR queue" or "merge the backlog of
+  PRs", or when the cycle-manager skill dispatches one PR in SINGLE-PR MODE. A PR that
+  trips any of the eight escalation conditions waits for the user's approval of that
+  PR; one that trips none merges after an independent reviewer approves it.
+  Fail-closed: a condition it cannot evaluate counts as met. Runs a read-only PROBE,
+  then classifies every PR and prints the reason. Resolves a mechanical conflict on the
+  branch and escalates an intent one. Repairs a defect on the branch, then hands that
+  PR to a later session. Queues its questions for one digest at the end, and asks a
+  lock ruling, a contradiction, a destructive action and the run order in place. Reads
+  its tools and gate from PROJECT.md.
 ---
 
 # PR Review & Merge Loop (tracker- and host-agnostic)
@@ -71,9 +63,16 @@ Read `PROJECT.md` at the repo root and resolve, once per run:
   `glab` for GitLab, an API). Wherever this skill shows `gh …`, substitute the project's actual
   host CLI. "PR" = pull request / merge request, whatever the host calls it.
 - **BASE branch** — the merge target (from `PROJECT.md`; usually `main`).
-- **MERGE strategy** — how the project merges (e.g. `--squash --delete-branch`). Use exactly
-  what `PROJECT.md` specifies. Resolve the project's exception for a parent that carries an open
-  stacked child as well, where it declares one. STACKED PAIRS states what that exception is for.
+- **MERGE strategy** — how the project merges (e.g. `--merge --delete-branch`, or
+  `--squash --delete-branch`). Use exactly what `PROJECT.md` specifies. Resolve the
+  **stacked-parent strategy** as well: how to merge a parent that carries an open stacked child.
+  STACKED PAIRS states what it is for.
+  - A strategy that already merges with a merge commit needs no exception. A stacked parent merges
+    with that strategy, and keeps its branch.
+  - A squash or rebase strategy needs a declared exception. Use the exception `PROJECT.md`
+    declares.
+  - With a squash or rebase strategy and no declared exception, hold the parent and escalate it.
+    Name the missing field. Never improvise a merge-commit flag.
 - **Tracker + how to call it** — which issue tracker, the scope, and the concrete calls behind
   these **tracker verbs**: `GET_ISSUE`, `SET_STATUS`, `ADD_COMMENT`. Also resolve:
   - **Target state after merge** — the tracker's real state name for "merged/complete"
@@ -104,11 +103,12 @@ merge-gate section, never from memory:
 - **The independent reviewer** — the `pr-reviewer` skill, which returns the verdict condition 6
   reads.
 
-**If `PROJECT.md` is missing or has no tracker/host mapping**, STOP and collect it — the
-"where do you manage issues / where do PRs live?" decision — then record it in `PROJECT.md`
-(via the normal ticket + PR flow) and log it in the decision log (`decisions.d/`). Do not guess
-a tracker or a
-target state name. (This is the same mapping the `issue-loop` skill uses.)
+**If `PROJECT.md` is missing, STOP.** A missing `PROJECT.md` does not make the project new. Run
+`CLAUDE.md` §0, Project Bootstrap. It routes the project to the interview or to the
+`project-onboard` skill. Never write a partial `PROJECT.md` from this skill.
+
+**If `PROJECT.md` has no tracker mapping or no host mapping, STOP and name what is missing.** Never
+guess it. Its fix is a ticket, filed with the `issue-writer` skill.
 
 ### LANE AVAILABILITY — announce it once, before SETUP
 
@@ -152,8 +152,14 @@ brief (scaffold D-6). Enter this mode only when the invocation names one pull re
 `CYCLE-MERGE-RESULT` block. Every other invocation runs the full loop from SETUP.
 
 **This mode writes to one pull request, its ticket, and the tickets that ticket blocked.** It writes
-no commit. It resolves no conflict and makes no repair. A conflict or a defect stops the merge, and
-the PR stays open.
+no commit. It resolves no conflict and makes no repair. Each of these stops the merge, and the PR
+stays open:
+
+- a conflict with BASE;
+- a defect;
+- a required check that is not success;
+- a ticket that was cancelled, descoped or superseded;
+- no review record posted for the current head.
 
 **PROBE still runs in this mode, scoped to its one PR.** Step 5 below says what that scope keeps.
 
@@ -173,9 +179,13 @@ the `CYCLE-MERGE-RESULT` block.
      branch and never reach BASE. This covers a child whose parent merged but was never retargeted
      (STACKED PAIRS). Only a full run retargets it.
    - **A stacked child.** This PR's base is another open PR's head branch. Hold this PR under
-     STACKED PAIRS.
-   - **A parent with an open child.** Another open PR's base is this PR's head branch. Retargeting
-     that child would write to another PR, so this mode never merges the parent.
+     STACKED PAIRS. Name this PR and its parent by number in the stop reason.
+   - **A parent with an open child.** Another open PR's base is this PR's head branch. Name this PR
+     and each open child by number in the stop reason.
+
+   **Say in either stop reason that a full `pr-merge-loop` run merges the pair, parent first.**
+   This mode never merges either one, because the retarget after the parent's merge writes to
+   another PR.
 5. Run PROBE, scoped to this PR. It stays read-only. With no other open PR, its cross-batch steps
    degenerate exactly as the queue-size rule in PROBE says.
    - Run step 1 for this PR and for every other open PR. Run step 2 for this PR.
@@ -206,8 +216,8 @@ the `CYCLE-MERGE-RESULT` block.
      it. A contradiction or a destructive action is asked in place instead. Merge only when the
      relayed answer passes A RELAYED ANSWER and approves this PR under the approval gate in
      `CLAUDE.md` §6. "Not yet approved", silence, and an answer about another PR are not approval.
-     On approval, run escalate-lane steps a and b first, and merge nothing if either one stops. An
-     approval does not override the authorship check in step a. Then run escalate-lane steps c to g
+     On approval, run escalate-lane steps a to c first, and merge nothing if any one stops. An
+     approval does not override the authorship check in step a. Then run escalate-lane steps d to h
      in order. Record the card's merge question in the digest only when the answer does not approve
      this PR. An approved PR queues nothing, because a merged PR has no question left to ask.
 9. When this PR merged in the auto lane, print its WHAT IT DOES block first, as AUTO LANE step 19
@@ -241,6 +251,18 @@ stop in step 1 writes `none` in `merged`, `still-open` and `hard-stops`, and 0 i
    Keep every PR whose base branch matches another open PR's head branch. Record each pair, by PR
    number and by branch name. Work the pairs under STACKED PAIRS below.
 
+   **Also keep every open PR whose base is neither BASE nor another open PR's head branch.**
+   Run `git fetch origin` first. Classify such a PR as an orphaned child only when both hold:
+   - its base branch is gone from origin, or that branch's tip is an ancestor of BASE:
+     `git merge-base --is-ancestor origin/<base> origin/<BASE>`;
+   - a merged PR had that base branch as its head:
+     `gh pr list --state merged --head <base> --json number`.
+
+   Send an orphaned child to STACKED PAIRS item 4. **Never retarget any other PR on a base that
+   is not BASE.** Its base may be a live branch it targets on purpose, such as a release branch.
+   Stop the loop for that PR, and report it with its base branch named. A test you cannot run
+   counts as not holding, so that PR stops too.
+
    **Run this pass at every queue size, and treat a missing pass as a stacked child you did not
    find.** Step 1 alone reports a clean sweep over a queue that still holds an invisible PR.
 3. Fetch latest: `git fetch origin`.
@@ -254,49 +276,8 @@ stop in step 1 writes `none` in `merged`, `still-open` and `hard-stops`, and 0 i
 
 ## STACKED PAIRS — a child never merges before its parent
 
-A **stacked child** is an open PR whose base is another open PR's branch, and not BASE.
-`CLAUDE.md` §3 permits that arrangement, and the `issue-loop` skill opens such a PR with
-`--base <parent-branch>`. SETUP step 2 builds the pair list. This section says what the loop does
-with each pair, and it binds both lanes.
-
-**The base branch is the link between the two PRs, and the issue id is not.** Read the pair from
-the PRs. This loop reads PRs before it reads tickets, so a ticket relation resolves too late.
-
-1. **Never merge a stacked child while its parent is open.** This holds in either lane, on any
-   verdict, and on any classification. A human approval never releases it either. Name the parent
-   by number, say the child waits on it, and move to the next PR.
-2. **Offer no merge option on a held child.** You may not perform that merge, so no wording of it
-   is available to you (ASK BLOCK). Offer to hold the child until its parent merges.
-3. **Merge a parent that carries an open child with a merge commit, and keep its branch.** Use the
-   exception CONFIG resolved for this case. The project's ordinary merge strategy governs every
-   other PR.
-
-   **Say why, because the ordinary strategy breaks the child.** A squash writes a new commit to
-   BASE, and deleting the branch retargets the child. The child's diff then re-includes the
-   parent's changes and conflicts with them. A merge commit makes the parent's commits ancestors
-   of BASE, so the child's diff stays its own changes alone.
-4. **Retarget every child of that parent immediately after the parent merges.** Move the child's
-   base to BASE: `gh pr edit <num> --base <BASE>`. Read the result of that call.
-5. **Never rebase a child, and never force-push one.** A retarget changes the PR's base, and it
-   changes no commit. Item 3 is what makes that enough, so a stacked child needs no rebase and
-   the no-force-push rule (private D-77) stands untouched.
-6. **Re-run the project's checks on the retargeted child. Read the results yourself.** The child's
-   diff is now measured against BASE, so the earlier run proves nothing about it.
-7. **Re-run CLASSIFY for the child, on its current head SHA.** Its base moved, so the previous
-   classification, any reviewer verdict and any human approval all lapse. This is the lapse
-   CONFLICT declares for a resolution, applied to a base change.
-8. **Re-present the child on that head SHA.** The escalate lane builds a fresh review card. The
-   auto lane needs a fresh verdict from the independent reviewer.
-9. **Delete the parent's branch once every child of it is retargeted.** Report a branch you left
-   behind, and name the child still holding it.
-10. **Report every pair in plain English** (PLAIN-LANGUAGE RULE). Name the parent, name the child,
-    and say what the child waits on.
-
-**A child whose parent merged in an earlier run is still a child until it is retargeted.** Its base
-names a branch that is merged, or gone. Retarget it under item 4, then work it as any other PR.
-
-**Never merge to resolve a pair you cannot read.** A base branch you cannot match, and a child you
-cannot retarget, each stop this loop for that PR. Report it, and move on.
+Read `references/stacked-pairs.md` whenever SETUP step 2 finds a stacked pair or an orphaned
+child, before either lane acts on any PR in it.
 
 ## PLAIN-LANGUAGE RULE (applies to every line you present to the user)
 
@@ -375,7 +356,8 @@ concept that already has one.
 ## ASK BLOCK (close every stop with one)
 
 Every stop ends with an ASK block. The stops are the PROBE order approval, the locked-pair ruling,
-an `intent` conflict, a repair hand-off, the review card, and the FINAL SUMMARY. A stop without an
+an `intent` conflict, a repair hand-off, the review card, a restated finding that contradicts its
+PR's classification row (ESCALATE LANE), and the FINAL SUMMARY. A stop without an
 ASK block is a stop the user cannot answer.
 
 **The FINAL SUMMARY is the one stop that may end without one.** A run that left nothing waiting on
@@ -425,8 +407,14 @@ with no recommendation hands back the reasoning the loop already did.
 
 **Never offer a merge you may not perform, and never recommend one.** Leave the option out
 altogether. A listed option is a path the user can pick, so a guard that bars only the
-recommendation leaves that path open. A PR you authored, a locked pair and an `intent` conflict
-each carry this bar.
+recommendation leaves that path open. Each of these carries this bar:
+
+- a PR you authored;
+- a locked pair;
+- an `intent` conflict;
+- a required check that is red or missing;
+- a ticket that was cancelled, descoped or superseded;
+- a review record that is not posted for the current head.
 
 **On a PR you authored, offer a hand-off instead of a merge.** You may not merge it on any verdict,
 so no wording of the merge option is available to you. **You cannot obtain a verdict on it either.**
@@ -444,8 +432,10 @@ reads first, and a question stated in the gate's vocabulary is a question they c
 go into the escalation queue and the DIGEST re-prints them at the end of the run (`CLAUDE.md` §13).
 The shape above never changes, and you never rewrite a block to shorten the digest.
 
-**Two blocks are never queued.** Ask a locked-pair ruling in place, and wait. Ask a destructive
-action's confirmation in place, and wait. Both are hard stops (`CLAUDE.md` §13).
+**Four blocks are never queued.** Ask a locked-pair ruling in place, and wait. Ask a destructive
+action's confirmation in place, and wait. Ask a restated finding that contradicts its PR's
+classification row in place, and wait. Ask the PROBE order question in place, and wait. All four
+are hard stops (`CLAUDE.md` §13).
 
 ## PROBE (run once, BEFORE any merging)
 
@@ -502,6 +492,13 @@ REVISED merge order, and step 6 CONFLICT-PAIR LOCK LIST. Steps 1, 2 and 4 ran.
    columns/tables the migration assumes exist but don't, or objects it would create/drop that
    clash with current state. Call out anything needing manual action from the user. (If the
    project has no database, skip this step and say so.)
+   - **Use introspection only:** tables, columns, constraints and applied migrations.
+   - Send no statement that writes. Use only read-only access, through the DB tooling `PROJECT.md`
+     names.
+   - When `PROJECT.md` names no read-only access, the check cannot be evaluated. Flag drift, so the
+     PR escalates (`CLAUDE.md` §6, the tie-break).
+   - Never use a write-capable credential for this check. Never print a credential (`CLAUDE.md`
+     §8).
 5. Produce a **RISK MAP** (cross-batch — skipped at a queue of one): a table of all PRs with — a
    ONE-LINE PLAIN-ENGLISH summary (see PLAIN-LANGUAGE RULE), status (clean / needs-action /
    blocked), the specific blocker if any, cross-PR dependencies, and a note if it should be held or
@@ -516,8 +513,8 @@ REVISED merge order, and step 6 CONFLICT-PAIR LOCK LIST. Steps 1, 2 and 4 ran.
    user rules.
 
 Present the risk map, the locked pairs and the revised order. Then close with one ASK block on the
-order, and **WAIT for the user's answer**. If the user does not answer on the order, proceed with
-the revised order.
+order, and **WAIT for the user's answer**. This is a hard wait, because `CLAUDE.md` §13 asks a
+question about the run's order in place. Never proceed on an order the user has not answered.
 
 **At a queue of one, end PROBE with no ASK block.** One PR has one order, so no order decision
 exists. Print the degeneration line and the step 2 risk note, then go to CLASSIFY. An ASK block
@@ -536,7 +533,7 @@ ASK — Shall I work the PRs in this order: #133, #117, #140?
   B) "<your own order>"
      → I use your order instead and start with the PR you name first.
 
-  Blocked until you answer: nothing. I proceed with this order if you say nothing.
+  Blocked until you answer: every PR in the queue. I merge nothing until you settle the order.
 ```
 
 **PROBE is mandatory, and it stays read-only.** It runs before CLASSIFY and before either lane, at
@@ -556,6 +553,17 @@ Sort every PR into a lane. The conditions come from `CLAUDE.md` §6, and they ar
 
 1. **Authorship.** Did you write any commit on this branch? Include earlier sessions in that
    answer. Classify `escalate` if the answer is yes. Classify `escalate` if you cannot tell.
+   - **Count only this evidence:** this run's own push log, and a resolution or repair record that
+     names this run.
+   - **A git author or committer field is not evidence.** A builder, a repairer and a merger often
+     push under one identity, so those fields cannot separate them.
+   - **SINGLE-PR MODE writes no commit**, so a merger in that mode wrote nothing in this run.
+   - **Answer for any commit other than a mechanical resolution commit pushed under CONFLICT.** That
+     commit does not count as one you wrote. CONFLICT step 8 re-runs CLASSIFY, so without this
+     exemption every resolved PR escalates on authorship. A repair commit is not covered. A
+     resolution commit you cannot tell apart from your other commits counts as yours.
+   - **The residual risk:** a commit an earlier session wrote, under the same git identity, that
+     left no record. This evidence cannot see that commit.
 2. **Lock.** Is this PR part of an unresolved locked pair from PROBE? Classify `escalate`, and
    hold it under the HARD STOP in the escalate lane.
 3. **A repair record you wrote.** Does the PR carry a repair comment? Read the PR's comments to
@@ -579,8 +587,12 @@ Record the PR's head commit SHA before you start. The classification belongs to 
 2. **Green signal not green.** Read the check results (`gh pr checks <num>`). This condition fires
    on any required job that fails, is pending, is cancelled, or never reported.
 3. **Footprint stray.** Evaluate this condition only where CONFIG found footprint enforcement on.
-   Read the declared footprint from the ticket. Name every changed file outside it. This condition
-   fires when enforcement is on and the ticket declares no footprint.
+   Read the declared footprint from the ticket. Normalise every declared entry before you compare
+   it, under the `issue-loop` skill's rule "Normalise every declared path first", in its section
+   "The disjointness test". Without that step, a changed `PROJECT.md` matches no entry written as
+   `PROJECT.md`, "Build / lint / test commands", and reads as a stray. Name every changed file
+   outside the normalised footprint. This condition fires when enforcement is on and the ticket
+   declares no footprint.
 4. **A test deleted, skipped or weakened.** Search the diff for removed test files, removed
    assertions and skip markers. Search it for an updated snapshot or expected-output fixture. Search
    it for a loosened threshold, tolerance or timeout. Each one fires this condition. A snapshot
@@ -592,11 +604,17 @@ Record the PR's head commit SHA before you start. The classification belongs to 
 6. **The independent reviewer's verdict.** The auto lane evaluates this condition, as its first
    step. See the note below.
 7. **A stale record: the ticket, the PR body, or a newer decision.** Re-read the ticket and every
-   comment on it. Read the decision log for entries dated after the branch point. Read the PR body
-   against the current diff. This condition fires on a ticket that was cancelled, descoped or
-   superseded. It fires on a decision entry that touches what this PR changes. It fires on a body
-   that describes a superseded version of the change — never record that as a finding and pass the
-   PR on.
+   comment on it. List the decision entries BASE gained since the branch point:
+
+   ```sh
+   git diff --name-only --diff-filter=AMD "$(git merge-base origin/<BASE> <SHA>)" origin/<BASE> -- decisions.d/
+   ```
+
+   Read each listed entry from `origin/<BASE>`. Judge an entry this pull request itself adds under
+   check 1, never under check 2. Read the PR body against the current diff. This condition fires
+   on a ticket that was cancelled, descoped or superseded. It fires on a decision entry that
+   touches what this PR changes. It fires on a body that describes a superseded version of the
+   change — never record that as a finding and pass the PR on.
 8. **An effect a revert cannot undo.** Ask whether a revert of this commit returns the system to
    its prior state, with no action needed outside the repository. This condition fires when it does
    not. Read the diff for each shape `CLAUDE.md` §6 names: data deleted or an irreversible
@@ -658,357 +676,21 @@ Run CONFLICT for every PR that conflicts with BASE, before either lane acts on t
 
 ## CONFLICT — run for any PR that conflicts with BASE
 
-Run this phase after CLASSIFY and before either lane acts on the PR. Run it whenever the host
-reports the PR as not cleanly mergeable against BASE.
-
-**Most conflicts are not a disagreement.** Two branches add an entry to the same directory. One
-side reformats a paragraph the other side edits. Both sides make the same fix. There is no winner
-to pick, and sending those to a human buys no safety.
-
-**A minority are the real thing.** Two tickets want opposite outcomes in the same place, and git is
-only where that becomes visible. An agent resolving one of those picks a winner between two
-intents. It produces something plausible either way, including when it picks wrong. This phase
-exists to separate the two cases, and to keep protecting the second.
-
-### Two gates first — either one forbids a resolution
-
-1. **Lock.** Is this PR part of an unresolved locked pair from PROBE? Do not classify its conflict.
-   Do not resolve it. Hold it under the HARD STOP in the escalate lane until the user rules.
-2. **Authorship.** Did you write a commit carrying this PR's own work? Do not resolve its conflict.
-   Report the conflict, and let the escalate lane present it. Answer `yes` if you cannot tell.
-
-### Read every hunk before you classify anything
-
-1. `git fetch origin`.
-2. Read the merge state: `gh pr view <num> --json mergeable,mergeStateStatus`.
-3. Cut a scratch worktree from the PR's head ref. Never do this work in your own checkout.
-4. Merge BASE into the scratch worktree: `git merge origin/<BASE>`.
-5. List the conflicting files: `git diff --name-only --diff-filter=U`.
-6. Read every conflicting hunk in every conflicting file. Read the whole hunk, not the markers.
-
-**One `intent` hunk makes the whole conflict `intent`.** A conflict is `mechanical` only when every
-hunk in every conflicting file is mechanical. Never resolve part of a conflict and escalate the
-rest.
-
-### `mechanical` — the three shapes
-
-A hunk is mechanical only when it matches one shape below and trips no disqualifier. Both sides are
-independently correct in all three shapes. The file's own format determines the resolution.
-
-**M1 — two additions of separate whole items.** Both sides add new items to the same list, table,
-directory or section. Neither side edits an existing item. Neither side deletes one. Keep both
-items, in the order the file's format dictates.
-
-- Check that every changed line on each side is an added line.
-- Check that the two sides add different items, by id, key, filename or heading.
-- Name the ordering rule you applied — filename order, numeric order, alphabetical, or append.
-
-**M2 — a reformat against an edit.** One side changes layout only. The other side changes content.
-Take the content from the editing side. Take the layout from the reformatting side.
-
-- Normalise whitespace and line wrapping on the reformatting side, before and after.
-- Check that the two normalised forms are identical.
-- Treat a changed word, number, path or punctuation mark as content, never as layout.
-
-**M3 — the identical change made twice.** Both sides make the same change. Keep that change once.
-
-- Normalise whitespace on both sides.
-- Check that the two normalised results are identical.
-
-### Disqualifiers — any one makes the hunk `intent`
-
-Check all six against every hunk. A disqualifier overrides a shape that matched.
-
-1. **X1 — the two additions contradict each other.** One makes the other false, or keeping both
-   leaves the file self-contradictory. Read what the two items *say*, not how they are laid out. A
-   real disagreement often wears a mechanical shape, and this is the check that catches it.
-2. **X2 — the two additions name the same item**: the same id, key, filename or heading. Two
-   entries claiming one id is a disagreement about one thing, not two additions of separate things.
-3. **X3 — either side edits or deletes a line the other side also edits or deletes.**
-4. **X4 — the order of the kept items carries meaning, and the format does not fix it**: a
-   precedence list, a pipeline, a middleware chain, a migration sequence.
-5. **X5 — a tool generates the file**: a lockfile, a build artifact, a compiled asset. Its correct
-   resolution is to re-run the tool, and that is not a text merge.
-6. **X6 — you cannot name the format rule that determines the resolution.** Classify `intent`
-   whenever picking a side requires knowing what the project wants.
-
-### `intent` — everything else, and it is the default
-
-Classify a conflict `intent` when any hunk matches no shape. Classify it `intent` when any
-disqualifier fires. Classify it `intent` whenever you are unsure.
-
-**A conflict you cannot classify is `intent`.** Absent evidence is not evidence of safety
-(`CLAUDE.md` §6). Uncertainty is never resolved by resolving.
-
-### RESOLVE a `mechanical` conflict — on the branch, never inside the merge
-
-1. Resolve each hunk by the shape that matched it. Add nothing the two sides do not already say.
-2. Run the project's checks in the scratch worktree, if its commands run in this environment.
-3. Commit the resolution on its own. Name the PR and the classification in the message.
-4. Push to the PR's branch: `git push origin HEAD:<headRefName>`.
-5. Never force-push. Never push to BASE. A resolution is a commit on the branch, and only there.
-6. Wait for the project's checks to report on the new head SHA. Read the results yourself.
-7. Escalate the PR and stop if any check fails. Do not resolve again. Do not revert.
-8. Re-run CLASSIFY for this PR. The head SHA moved, so the previous classification is void.
-9. Remove the scratch worktree.
-
-**State why the resolution goes on the branch.** A conflict resolved inside the merge lands a diff
-that no review saw and no check ran on. Resolving on the branch keeps the property that what merges
-is what was reviewed. `CLAUDE.md` §6 pre-merge check 4 already requires exactly this on a stale
-branch — merge BASE in, resolve, re-run the suite — and this phase defines the boundary that check
-cites.
-
-**Merge BASE in. Never rebase.** A rebase needs a force-push, which destroys the commits a reviewer
-already read. A merge commit also keeps the resolution readable on its own.
-
-**A risk-list path does not block a resolution.** Condition 1 still escalates the PR, so a human
-reads the resolved diff before it merges. Resolving a mechanical conflict changes no intent and
-removes no gate.
-
-### A resolution voids every approval the PR already carried
-
-The diff changed, so nothing granted before the resolution still applies.
-
-- **A human approval lapses** (`CLAUDE.md` §6, approval-gate rule 4). Re-present the review card,
-  and ask again for this PR.
-- **The reviewer's verdict lapses.** It belonged to the previous head SHA (private D-26).
-- **The classification lapses.** Re-run CLASSIFY against the resolved head SHA.
-
-**In the auto lane, a resolved PR never merges on a pre-resolution verdict.** The lane re-invokes
-the independent reviewer on the resolved head SHA. That reviewer reads the resolution commit as
-part of the diff. A resolved PR merges without a human only on a fresh `approve` covering the
-resolved diff. Anything else sends it to the escalate lane — a different verdict, no verdict, or a
-reviewer that did not run.
-
-**A resolution commit does not make you the PR's author.** The authorship gate asks whether you
-wrote a commit carrying the PR's own work. A mechanical resolution carries none, which is what the
-classification asserts. The exemption covers a resolution commit you pushed under this phase, and
-nothing else. Escalate the PR when you cannot tell your resolution commit apart from your other
-commits on that branch.
-
-### ESCALATE an `intent` conflict — name both sides, pick no winner
-
-1. Do not resolve it. Do not resolve part of it. Do not merge it.
-2. Send the PR to the escalate lane, whatever CLASSIFY printed for it.
-3. Name the conflicting file and the hunk.
-4. State what the branch says, in plain English.
-5. State what BASE says, in plain English. BASE is the branch this PR merges into.
-6. State why both cannot hold at once.
-7. Close with one ASK block asking which side the project wants.
-
-```text
-ASK — In `CLAUDE.md`, should a stale PR body escalate the PR, or only be reported?
-
-  A) "the branch wins"  (recommended — the branch is the newer decision, and private
-     D-80 ruled that a stale body escalates)
-     → I tell the author to take the branch's wording, and the PR comes back for review.
-  B) "main wins"
-     → I tell the author to drop that hunk and keep what is on the default branch.
-  C) "neither — I'll rewrite it"
-     → I leave both alone and wait for your wording.
-
-  Blocked until you answer: #NN. I merge nothing on it and change no ticket.
-```
-
-**Never pick a side, and never present the two sides without asking.** A named pair of positions
-with no question is a report, and this stop needs a decision.
-
-**Queue that block and continue** (`CLAUDE.md` §13). This conflict blocks one PR, so it never
-blocks the run. The PR contributes one entry to the digest — the conflict ruling. Ask its merge
-question only after the user rules, and never both in one entry.
-
-This is the locked-pair rule applied to a branch-versus-BASE conflict, and nothing here relaxes it.
-Do not add the PR to the lock list, which records unmerged pairs. Record the conflict in the risk
-map instead, and carry it onto the PR's review card.
-
-### Print the conflict table — mechanical rows included
-
-Print one row per conflicting file, for every conflicting PR:
-
-| PR | File | Hunks | Class | Rule | Resolution |
-| --- | --- | --- | --- | --- | --- |
-| #NN | `decisions.d/` | 1 | mechanical | M1, filename order | kept both entries, pushed `abc1234` |
-| #NN | `CLAUDE.md` | 2 | intent | X1, the two rules contradict | none, escalated to the user |
-
-**Print the reason for a `mechanical` row too.** Name the shape that matched. Name the
-disqualifiers you cleared. State what you changed in each hunk. A classifier whose decisions are
-invisible cannot be audited, and an unaudited classifier is how a wrong resolution goes unnoticed.
-
-**Say what each row means in words, under the table.** The Rule cell holds a shape code, and a
-shape code is a citation rather than an explanation (PLAIN-LANGUAGE RULE). Write one sentence per
-row: "Both PRs added a new decision file, so I kept both and ordered them by filename (M1)."
+Read `references/conflict.md` after CLASSIFY, before either lane acts on a PR the host reports
+as not cleanly mergeable against BASE.
 
 ## REPAIR — fix a defect on the branch, then hand the PR off
 
-Run this phase after CONFLICT and before either lane acts on the PR. Run it for any PR where
-CLASSIFY, CONFLICT or PROBE found a defect on the repairable list below, whatever lane the PR was
-classified into.
-
-**Reporting a defect and handing the PR back to its author costs a whole session.** The author's
-loop has to be scheduled again for a failing lint job, or for one sentence in a PR body. This phase
-fixes it here instead, and pays one price for that: a repair makes you the branch's author, so you
-never merge that PR (`CLAUDE.md` §6). A later session that did not write the repair merges it.
-
-### Two gates first — either one forbids a repair
-
-1. **Lock or `intent` conflict.** Is this PR part of an unresolved locked pair, or did CONFLICT
-   classify its conflict `intent`? Do not repair it. Hold it under the HARD STOP in the escalate
-   lane until the user rules.
-2. **Authorship.** Did you write a commit carrying this PR's own work? Do not repair it. The
-   hand-off block in the escalate lane applies unchanged. Answer `yes` if you cannot tell — a
-   repair stacked on your own work is a repair you can never separate from it again.
-
-### Repair only these five, and name the one you are repairing
-
-A finding is repairable only when it matches one shape below. Name the shape and the finding before
-you touch anything.
-
-- **R1 — a required check fails because of this diff.** The failure is caused by what this PR
-  changed, and fixing the code or the document makes the check pass.
-- **R2 — the PR body no longer describes the diff** (pre-merge check 7). The repair is the body,
-  and it needs no commit.
-- **R3 — a correctness defect in the diff** (pre-merge check 1): a bug, an unchecked
-  silent-failure result, a missing error path, or an unjustified line. An unjustified line matches
-  a shape in `CLAUDE.md` §4, "Justify every line you write". Remove that line. Inline a helper with
-  one caller into that caller. Never remove a line the acceptance criteria name explicitly. Such a
-  line is not filler. Escalate a line when you cannot tell whether it matches a shape.
-- **R4 — a required test is missing** (`CLAUDE.md` §11 rules 1–3): nothing asserts the changed
-  behaviour, or the failure branch is untested.
-- **R5 — a document this change makes false** (`CLAUDE.md` §5 rule 6) that the issue's declared
-  footprint already names.
-
-### Never repair these — none of them is a defect
-
-| Finding | Why it is not repairable |
-| --- | --- |
-| A risk-listed path (escalation condition 1) | The PR is correct. The condition asks a human to look. |
-| A footprint stray (condition 3) | Reverting it, or widening the issue, is a scope decision. |
-| A test deleted, skipped or weakened (condition 4) | `CLAUDE.md` §11 rule 10 sends this to a human, always. |
-| A diff over the size threshold (condition 5) | Splitting a PR decides scope on the user's behalf. |
-| A cancelled ticket, or a contradicting decision (condition 7) | Only the user can say what the project now wants. |
-| An effect a revert cannot undo (condition 8) | Removing the effect changes what the PR does, which is a scope decision. |
-| An `intent` conflict, or a locked pair | Both sides want opposite things, and picking one is the user's call. |
-| A PR whose own work you authored | You could never separate your repair from your own work again. |
-
-**Escalate the finding instead, and say what you would have changed.** A finding you cannot place
-on either list is not repairable. Absent evidence is not evidence of safety (`CLAUDE.md` §6).
-
-### The bounds — every one holds on every repair
-
-1. **Repair every repairable finding, in as many passes as it takes.** A finding the first pass
-   revealed is repaired too, and so is one the user reports afterwards. **A half-repaired record is
-   worse than an unrepaired one**, because the passages you did fix make the ones you missed read as
-   checked. Finish the job.
-   - **Audit before you declare a pass complete.** Read the whole body, or the whole file, against
-     the current diff — never spot-check the passages you already know about. A repair that fixes a
-     detail buried in a document and leaves its opening summary contradicting the diff has repaired
-     nothing a reader will see.
-   - **Two things still stop a pass, and neither is a counter.** Bound 5 discards a repair whose
-     gate failed, and bound 9 forbids repairing again to chase a red check. Escalate there. Those
-     bound failures, not a pass count, are what stop an agent iterating.
-   - **Record each pass**, per the record section below. A later pass that corrects an earlier one
-     says so, and never silently rewrites the earlier record.
-   - **Bounds 2 to 9 hold on every pass.** Run bounds 10 to 12 once, after the last pass.
-2. **Work in a scratch worktree** cut from the PR's head ref. Never repair in your own checkout.
-3. **Touch only files the issue's declared footprint already names**, plus the PR body. Stop and
-   escalate when a repair needs a file outside it, and name that file. This is what stops a repair
-   manufacturing a footprint stray.
-4. **Run the project's whole pre-PR gate** in that worktree, from the "Build / lint / test commands"
-   section of `PROJECT.md`. Read each command's exit status yourself.
-5. **Discard the repair and escalate when the gate fails.** Never push a repair you did not watch
-   pass. Report what you tried.
-6. **Never weaken, skip or delete a test to make the gate pass** (`CLAUDE.md` §11 rule 10). That
-   rule has no exception, and a repair is not one.
-7. **One commit, and one push, per repair pass.** Write the message as `fix: repair #<num> per
-   merge-loop review (<ticket-id>)`. Push with `git push origin HEAD:<headRefName>`. Batch the
-   findings you already know about into one pass rather than pushing a commit per finding.
-8. **Never force-push, and never push to BASE.** A repair is a commit on the PR branch, and only
-   there.
-9. **Read the checks on the new head SHA yourself.** Escalate and stop on anything other than
-   success. Never repair again to chase a red check.
-10. **Re-run CLASSIFY against the new head SHA.** The diff moved, so the classification, any
-    reviewer verdict and any human approval all lapse — the same lapse CONFLICT declares for a
-    resolution.
-11. **Send the PR to the escalate lane for the rest of the run**, whatever that fresh
-    classification says, and close it with the hand-off block below. You wrote this repair, so you
-    are the branch's author and this run never merges that PR. A later run that wrote nothing here
-    reads the record differently (AUTO LANE).
-12. **Remove the scratch worktree.**
-
-### Leave the record — the next session reads it, not your memory
-
-Post one comment per pass on the PR, headed `REPAIRED BY THE MERGE LOOP — PASS <n>`, carrying:
-
-1. The pass number, counted from 1 across this run.
-2. Each finding you repaired in this pass, its shape, and what you changed for it.
-3. The commit SHA you pushed, or `body only` for an R2 repair.
-4. Each gate command you ran, and the status you read.
-5. One sentence: a session that did not write this repair must review it before it merges.
-
-**A later pass that corrects an earlier one says so, in its own comment.** Name the earlier pass by
-number. Say what that pass got wrong, and what this pass changed instead. **Never edit an earlier
-comment, and never delete one.** A rewritten record hides the correction from the reader it was
-written for.
-
-Then `ADD_COMMENT` one line on the ticket per pass, naming the repair and linking the PR
-(`CLAUDE.md` §2).
-
-**These comments are the durable record, and CLASSIFY's third gate reads them.** Your own memory
-ends with this run. Post each pass's comment before you start the next pass, and report a comment
-that failed to post rather than continuing as though it landed.
-
-**A pass that posted no comment did not happen, as far as the next session can tell.** Stop there,
-and escalate the PR. Never begin another pass on a record you could not write.
-
-### Then hand the PR off
-
-You are now the branch's author. You cannot merge this PR, and you cannot get a verdict on it
-either: the `pr-reviewer` skill refuses an invocation from the branch's author, and that refusal
-survives one level of indirection. Present the repair, then close with this block.
-
-```text
-ASK — I fixed the failing lint job on #NN. Shall I leave it for a fresh session to merge?
-
-  Already tried: I rewrapped one over-long line in `README.md`, and the lint job now passes.
-
-  A) "leave it for the next run"  (recommended — I wrote that fix, so my reading of it is
-     not evidence; a session that did not write it can review and merge it)
-     → I leave #NN open with the repair pushed and its ticket unchanged, and move on.
-  B) "revert the repair"
-     → I push a commit undoing my fix, comment that on #NN, and leave it as I found it.
-
-  Blocked until you answer: nothing. I move to the next PR either way, and #NN merges in a
-  later run.
-```
-
-**Queue that block and continue** (`CLAUDE.md` §13). A repair blocks one PR and never the run.
-
-### Print the repair table
-
-Print one row per pass, not one row per repaired PR. Order the rows by PR, then by pass number:
-
-| PR | Pass | Finding | Shape | What changed | Gate | Pushed |
-| --- | --- | --- | --- | --- | --- | --- |
-| #NN | 1 | `Markdown lint` failed on a 112-column line | R1 | rewrapped one paragraph in `README.md` | 6/6 passed | `abc1234` |
-| #NN | 2 | the body still described the old approach | R2 | rewrote two sentences of the body | not run (no commit) | body only |
-
-**A row per pass is the only shape that stays true.** Each pass has its own gate result and its own
-pushed SHA, so a single row per PR would hold several values in one cell. A reader cannot tell which
-gate result belongs to which commit once that happens.
-
-**Give every PR you repaired at least one row.** A PR repaired in three passes prints three rows.
-
-**Say what each row means in words, under the table.** A shape code is a citation, never an
-explanation (PLAIN-LANGUAGE RULE). Write one sentence per row: "The lint job failed on one
-over-long line, so I rewrapped that paragraph and the job passed (R1)."
-
-**Say how many passes each PR took, in the same plain words.** Write one sentence per repaired PR:
-"#NN took two passes, because fixing the lint job revealed that the body no longer matched."
+Read `references/repair.md` after CONFLICT, before either lane acts on a PR with a repairable
+finding from CLASSIFY, CONFLICT or PROBE. Read it again at AUTO LANE step 6, when a non-approve
+reviewer verdict names a repairable finding.
 
 ## REVIEW RECORD (post it in both lanes, before the PR merges)
 
 `CLAUDE.md` §6 requires one comment on the PR carrying the outcome of pre-merge checks 2–5 and 7.
-That comment is the only valid surface, and this phase is where the loop writes it. Both lanes run
+That comment is the only valid surface, and this phase is where the loop writes it. **The
+`MERGE-LOOP REVIEW RECORD` is the `CLAUDE.md` §6 review record.** The `pr-reviewer` skill's verdict
+comment is the independent verdict this record cites, never the §6 record itself. Both lanes run
 this phase. Neither lane merges a PR whose record is not posted.
 
 Post the record as soon as you hold all five outcomes for this PR. The auto lane holds them once it
@@ -1029,11 +711,22 @@ Bottom line: <one plain sentence naming what decides this merge>
 Independent verdict: <the reviewer's verdict and where its comment is, or `none — escalate lane`>
 ```
 
+**The duplicate line reads the same source as the review card's duplicate item** (EVIDENCE item 9):
+the open PRs, plus the PRs merged into BASE since the branch point, at every queue size.
+
 Five rules bound the record:
 
 1. **Name the head SHA the record belongs to.** A record naming no commit describes no diff.
 2. **Write every line under the PLAIN-LANGUAGE RULE.** A check number cites; it never explains.
-3. **Post one record per head SHA.** A moved head gets its own record.
+3. **Post one record per head SHA.** A moved head gets its own record. Read the PR's comments
+   before you post.
+   - When a `MERGE-LOOP REVIEW RECORD` for this head SHA carries the same lane and the same five
+     outcomes, post nothing. Cite that comment on the card.
+   - When any outcome differs, post a new record that names the one it corrects (rule 4).
+   - A comment list you cannot read counts as no record, so post one.
+
+   Read first because the `cycle-manager` skill dispatches a merger for one head more than once:
+   on the direct route, then on the digest route. Each of those runs reaches this phase.
 4. **Never edit an earlier record, and never delete one.** A later record that corrects an earlier
    one says which one it corrects.
 5. **Report a record that failed to post.** Merge nothing until that record lands.
@@ -1056,7 +749,9 @@ This one says what the review found. A PR can carry both, and one never substitu
    when the invocation already carries a verdict block.** Accept that verdict instead, under
    A RELAYED VERDICT below.
 5. Read the first line of the verdict you now hold.
-6. Move this PR to the escalate lane on anything other than `approve`. Print the verdict there.
+6. On anything other than `approve`, run REPAIR first for each repairable finding (R1–R5) the
+   verdict names, per `references/repair.md`. Then move this PR to the escalate lane, and print
+   the verdict there.
 7. Stop and report if the reviewer did not run. A missing verdict is condition 6 met. A dispatch you
    could not make reads the same way: condition 6 met, stop and report. Never read it as a missing
    skill. Never work around the absent verdict. **A verdict you accepted under A RELAYED VERDICT
@@ -1065,7 +760,8 @@ This one says what the review found. A PR can carry both, and one never substitu
 9. **POST THE REVIEW RECORD on this PR.** Run the REVIEW RECORD phase above. Merge nothing before
    that comment posts.
 10. Merge this PR on `approve`: `gh pr merge <num> <MERGE strategy>` (from CONFIG). Merge a PR that
-    carries an open stacked child with a merge commit instead, and keep its branch (STACKED PAIRS).
+    carries an open stacked child with the stacked-parent strategy CONFIG resolved, and keep its
+    branch (STACKED PAIRS).
 11. Capture the resulting merge/squash commit SHA on BASE.
 12. `SET_STATUS` on the resolved issue id → the target state from CONFIG.
 13. `ADD_COMMENT` with the PR URL and the merge commit SHA, if the comment policy is on.
@@ -1151,7 +847,7 @@ Read a relayed verdict under these four rules, in order.
    one is condition 6 met. The `pr-reviewer` skill writes that field in its own INDEPENDENCE phase,
    whichever way the phase went.
 4. **Read the `VERDICT` field last.** Act on it exactly as you act on a dispatched verdict. Anything
-   other than `approve` moves this PR to the escalate lane.
+   other than `approve` takes AUTO LANE step 6: REPAIR first, then the escalate lane.
 
 **A relayed verdict is evidence, and an unreadable field is absent evidence.** The fail-closed bias
 governs it like every other input.
@@ -1161,9 +857,10 @@ still comes from a separately dispatched agent. A caller that produced the branc
 
 ## ESCALATE LANE — FOR EACH PR, in the approved order
 
-A PR arrives here from CLASSIFY, or from the auto lane after a non-approve verdict. Open its card
-with the BOTTOM LINE — one plain sentence saying what you believe and what decides this merge. Cite
-the conditions after that sentence, never instead of it (PLAIN-LANGUAGE RULE).
+A PR arrives here from CLASSIFY, or from the auto lane after a non-approve verdict and any REPAIR
+that verdict sent it to (AUTO LANE step 6). Open its card with the BOTTOM LINE — one plain
+sentence saying what you believe and what decides this merge. Cite the conditions after that
+sentence, never instead of it (PLAIN-LANGUAGE RULE).
 
 **A PR handed back by the auto lane keeps both readings.** Its card restates CLASSIFY's findings and
 prints the reviewer's verdict beside them, per AUTO LANE step 6. Substitute your own reading for
@@ -1178,7 +875,8 @@ next unlocked PR until the user rules. (See LOCK RESOLUTION.)
 ```text
 ASK — #133 and #117 undo each other. Which one should the project keep?
 
-  A) "#133 wins"  (recommended — it is the newer change, and it matches private D-70)
+  A) "#133 wins"  (recommended — it is the newer change, and the decision log already chose
+     its approach, private D-70)
      → I review #133 the normal way and bring you a card for it. #117 stays open,
        untouched, until you say what to do with it.
   B) "#117 wins"
@@ -1211,122 +909,15 @@ all of it, not only the summary.
 
 ### The card has three blocks, printed in this order
 
-Print **DECISION**, then **WHAT IT DOES**, then **EVIDENCE**. Separate each block from the next with
-one blank line. Close with the ASK block below, and print nothing else. The order is fixed so that a
-user who stops after two lines still knows what you believe and what decides the merge.
-
-**DECISION — what the user has to decide.**
-
-1. The header line: `#<num> — <title> — @<author>`, and the branch name.
-2. The **BOTTOM LINE**: one sentence saying what you believe about this PR overall, and naming the
-   finding that decides the merge. Write it so a user who reads nothing else can act on it.
-3. One bullet per escalation reason. Say what you observed and what it means for this merge. Cite
-   the condition number after the sentence, never instead of it.
-
-**WHAT IT DOES — what lands if the user says yes.**
-
-1. The plain-English summary: at most three bullets, one sentence each, and no jargon. This is what
-   the user decides on, so make it genuinely understandable rather than a restatement of the diff.
-2. The action items for the user, read off the changed files: database migrations, new or changed
-   environment variables, dependency or lockfile changes, infrastructure, CI, Docker, Terraform or
-   Kubernetes changes, breaking changes, and manual backfills. Label the line `Action items:`, and
-   say concretely what the user has to DO and why. Write `Action items: None.` when there are none.
-3. One line offering the technical detail: `Say "detail on #<num>" for what the diff actually
-   changes.`
-
-**Hold the technical detail off the card, and print it when the user asks.** Keep what the PR
-changes in the code ready, from the current diff. Print it when the user says `detail on #<num>`, or
-asks for the same thing in their own words. It never replaces the plain summary, and it never
-precedes it.
-
-**EVIDENCE — what you checked, and what it showed.**
-
-**Restate these six, in this order.** Give each one sentence. The card restates the findings
-CLASSIFY, CONFLICT and PROBE already produced. Re-gather a finding only under the freshness trigger
-above. Each item names the escalation condition or the pre-merge check it discharges. An item that
-discharges neither is marked **the card's own work**.
-
-1. **Checks** (escalation condition 2) — restate what CLASSIFY read. Clear when every required check
-   passed. Otherwise name the job, and say whether it failed or never reported.
-2. **Conflict against current BASE** (pre-merge check 4, staleness against BASE) — restate what
-   CONFLICT found. Clear when the merge is clean. Otherwise name the conflicting files, and report
-   CONFLICT's classification and its reason. Name the hunks for a resolved conflict, and say what
-   changed. Name both sides for an `intent` conflict, and hold the card for the ASK block in
-   CONFLICT.
-3. **Body freshness** (pre-merge check 7) — restate what CLASSIFY condition 7 read against the
-   current diff. Clear when the body still describes the diff. Otherwise name the sentence the diff
-   no longer supports. A stale body fires escalation condition 7, so say so and ask the author to
-   re-sync it before the merge. Never present a PR as ready on a body you know is stale.
-4. **Tracker ticket** — two halves, and say which is which. Restate CLASSIFY condition 7's ticket
-   finding, which says whether the ticket was cancelled, descoped or superseded (pre-merge check 5).
-   The id resolution and the planned update are the card's own work: resolve the issue id from the
-   PR title, branch name and description, per the id format in CONFIG. Clear when the id resolves,
-   the ticket is still valid, and the planned update is the ordinary one: move it to the target
-   state, and comment this PR plus the merge commit. Otherwise say no id resolves and that no
-   tracker update will happen, or name the current state that changes the plan.
-5. **Dependents to sweep** (the card's own work) — list every ticket that declares this PR's ticket
-   as a blocker, with the signal each one carries. Clear when no ticket does. Otherwise name each
-   ticket and its planned outcome: cleared, kept with the remaining blockers named, or left alone as
-   unverifiable.
-6. **Carry-over from PROBE** (the card's own work) — restate any risk-map flag for this PR: a
-   semantic conflict, an ordering dependency, or schema drift. Clear when PROBE flagged nothing, or
-   the flag is no longer live against the current state of BASE. Otherwise state the flag, and say
-   it is still live.
-
-**A restated finding that contradicts this PR's row in the classification table is a STOP.** Print
-both readings. Name the disagreement in plain English. Report it, and pick neither. Merge nothing on
-either reading. Two readings of one commit cannot both be right, and choosing between them is
-merging to resolve uncertainty, which this file forbids in both lanes.
-
-**Collapse the evidence that carries no finding.** Give a bullet to each of the six that carries a
-finding. Name every one that does not on a single `Clear:` line, each with its answer in a few
-words. Print that line last in the block. Omit it when all six carry a finding. **Never drop a
-finding to save a line.**
-
-### The card has a length budget
-
-Check these numbers before you print:
-
-- The whole card above the ASK block: **25 lines or fewer.**
-- The plain-English summary: **at most three bullets, one sentence each.**
-- Every escalation reason, and every evidence bullet: **one sentence, on one line.**
-- The BOTTOM LINE: **one sentence.**
-
-Count the lines you print, and count each blank separator as one. A line that wraps on the reader's
-screen is still one line. Cut words to come in under the budget. **Never cut a finding, and never
-trade a plain sentence for a condition number.** Brevity buys back nothing the PLAIN-LANGUAGE RULE
-requires.
-
-A worked card, for a PR carrying one real finding. It is the card body: the ASK block below closes
-it, and the budget does not count that block.
-
-```text
-DECISION
-#141 — Stop the login page accepting unlimited password guesses — @dana (branch: feat/141-login-cap)
-This one is ready and I would merge it, and the only thing holding it is the file it edits.
-- It changes `CLAUDE.md`, and this project sends every change to that file to a person,
-  whatever the checks say (escalation condition 1).
-
-WHAT IT DOES
-- Someone guessing passwords at the login page is now cut off after five tries a minute.
-- It exists because the issue asks for a cap before the login page goes public.
-- If it broke, a real person retyping their own password would be shut out too.
-Action items: None. Nothing to migrate, configure or deploy by hand.
-Say "detail on #141" for what the diff actually changes.
-
-EVIDENCE
-- Two tickets are waiting on this one: #148 stops waiting the moment this merges, and #150
-  keeps its mark because #133 is still open.
-- Clear: checks passed, merges cleanly, the body matches the diff, ticket #141 resolves and
-  closes on merge, PROBE flagged nothing.
-```
+Read `references/review-card.md` before you build a card: it holds the DECISION, WHAT IT DOES and
+EVIDENCE blocks, the classification-contradiction stop, and the card's length budget.
 
 ### Reconcile the bullets before you present the card
 
-**Run this after you have all six findings, and before you print the card.** The card prints the
-BOTTOM LINE first, and you compute it last. Each finding above comes from a different step, and
-nothing before this point compares them. Read them together as one set, and resolve them into the
-BOTTOM LINE:
+**Run this after you have all ten EVIDENCE findings, and before you print the card.** The card
+prints the BOTTOM LINE first, and you compute it last. Each EVIDENCE finding comes from a different
+step, and nothing before this point compares them. Read them together as one set, and resolve them
+into the BOTTOM LINE:
 
 1. Find the findings that pull in opposite directions. A green check status beside a stale PR body
    is one shape. A valid ticket beside an ordering hazard carried over from PROBE is another.
@@ -1343,8 +934,8 @@ Two worked bottom lines:
   makes (pre-merge check 7). The stale body decides this one: the checks say the code works, and
   they say nothing about whether the description that merges with it is true."
 
-**A finding that contradicts this PR's classification row never reaches this step.** EVIDENCE above
-makes that a stop. Reconcile only the findings that survive it.
+**A finding that contradicts this PR's classification row never reaches this step.** EVIDENCE
+makes that a stop (`references/review-card.md`). Reconcile only the findings that survive it.
 
 **Never present bullets that disagree and leave the user to resolve them.** The user asked the loop
 to read the PR. An unreconciled stack of verdicts hands that reading back undone.
@@ -1414,49 +1005,65 @@ PR. The DIGEST re-prints every queued block at the end of the run, and the user 
 the entry under what the answer unblocks: this PR, and the tickets its merge would sweep.
 
 **Act on an answer only after you re-check the PR.** Other merges move BASE, so a card built earlier
-may no longer describe what would land. Run the freshness step above first. Re-present the card when
-the head SHA or BASE has moved, and ask again.
+may no longer describe what would land. Record the BASE commit each card was built on. Run the
+freshness step above first. Then:
+
+- **Head moved:** re-present the card, and ask again.
+- **Only BASE moved:** run `git diff --name-only <BASE at card time> origin/<BASE>`, and intersect
+  it with this PR's changed files. Re-run CLASSIFY and CONFLICT. Re-ask only when the intersection
+  is non-empty, or when either result changed. Otherwise act on the answer.
 
 **Every answer to this block is handled below.** An ASK block whose recommended answer falls through
 to "wait" promises an action and delivers silence.
 
-- If the user says **"go ahead"** (or similar): this approves BOTH the merge AND the tracker
-  update for THIS PR.
+- If the user's answer **names this PR, by number or by title, and approves it** ("go ahead on
+  #NN"): this approves BOTH the merge AND the tracker update for THIS PR. A bare "go ahead" that
+  names no PR is not yet an approval. Say so, and ask again.
   a. **Check authorship before anything else.** Stop here if you wrote any commit on this branch,
      other than a mechanical resolution commit pushed under CONFLICT. **A repair commit pushed
      under REPAIR stops you here too** — it is your work, and the resolution-commit exemption
-     (private D-77) does not reach it. Say that you cannot merge your own work, and that the user
-     must merge it by hand or hand it to another session. **An approval never overrides this**
-     (`CLAUDE.md` §6). Removing the merge option from a card removed the invitation, not this path
-     — guard the path here, where the merge actually happens.
+     (private D-77) does not reach it. **Stop here too when this run posted a
+     `REPAIRED BY THE MERGE LOOP` record on this PR.** Use the test of CLASSIFY's third gate: read
+     the PR's comments, and stop when this run wrote the record or you cannot tell. That test
+     covers a body-only R2 repair, which pushes no commit. Say that you cannot merge your own work,
+     and that the user must merge it by hand or hand it to another session. **An approval never
+     overrides this** (`CLAUDE.md` §6). Removing the merge option from a card removed the
+     invitation, not this path — guard the path here, where the merge actually happens.
   b. **Stop here if this PR is a stacked child whose parent is still open** (STACKED PAIRS). Say
      the child waits on its parent, name that parent by number, and merge nothing. An approval
      never releases this hold.
-  c. Merge only this PR: `gh pr merge <num> <MERGE strategy>` (from CONFIG). Use the merge-commit
-     exception when this PR carries an open stacked child (STACKED PAIRS).
-  d. Capture the resulting merge/squash commit SHA on BASE.
-  e. Update the tracker for the resolved issue id:
+  c. **Stop here on any of these three, and merge nothing.** An approval never overrides them.
+     Stop when a required check, re-read now with `gh pr checks <num>`, is not success (escalation
+     condition 2, and ENFORCEMENT). Stop when the ticket was cancelled, descoped or superseded
+     (escalation condition 7, its ticket half). Stop when no review record is posted for the
+     current head (REVIEW RECORD).
+  d. Merge only this PR: `gh pr merge <num> <MERGE strategy>` (from CONFIG). Merge a PR that
+     carries an open stacked child with the stacked-parent strategy CONFIG resolved, and keep its
+     branch (STACKED PAIRS).
+  e. Capture the resulting merge/squash commit SHA on BASE.
+  f. Update the tracker for the resolved issue id:
   - `SET_STATUS` → target state.
   - `ADD_COMMENT` with the PR URL and the merge commit SHA (if the comment policy is on).
-  f. Confirm merged + ticket updated. If no ticket id was found, merge only and say
+  g. Confirm merged + ticket updated. If no ticket id was found, merge only and say
      "no tracker update (no ticket linked)".
-  g. **Sweep the dependents of the merged ticket:** run the DEPENDENT SWEEP below, and report its
+  h. **Sweep the dependents of the merged ticket:** run the DEPENDENT SWEEP below, and report its
      result on this card.
-  h. **Retarget every open child of this PR:** run items 4 to 9 of STACKED PAIRS, and report each
+  i. **Retarget every open child of this PR:** run items 4 to 9 of STACKED PAIRS, and report each
      child on this card.
-  i. `git fetch origin` so BASE is current.
-  j. **RE-CHECK THE RISK MAP:** this merge may have activated a flagged semantic conflict or
+  j. `git fetch origin` so BASE is current.
+  k. **RE-CHECK THE RISK MAP:** this merge may have activated a flagged semantic conflict or
      schema dependency for a later PR. If so, call it out now before moving on, and adjust the
      remaining order if needed.
-  k. Continue to the next PR.
+  l. Continue to the next PR.
 - If the user says **"hand it off"** on a PR you authored: comment on the PR that it needs an
   independent review from a session that did not produce the branch, and name the commits you
   wrote. Leave the PR open and its ticket unchanged. Move to the next PR. **Never merge it**, and
   never read a later "go ahead" on it as authorising you to.
 - If the user says **"skip"**: leave the PR and its ticket untouched, move on.
-- Anything else: treat as not-yet-approved and wait.
+- Anything else: treat as not yet approved. Queue the card's merge question, and move to the next
+  PR.
 
-**Steps a and b guard every merge this lane performs**, including the one LOCK RESOLUTION reaches
+**Steps a to c guard every merge this lane performs**, including the one LOCK RESOLUTION reaches
 by sending a released winner through this same card.
 
 ### A RELAYED ANSWER — the user's own words, carried by a caller
@@ -1531,8 +1138,8 @@ picked up now." A bare list of ids and labels is a log line, not a report (PLAIN
 
 **Why this step exists.** A stale signal is not untidy — the loop that schedules work filters on
 exactly that signal, so it hides an eligible ticket indefinitely and the backlog looks emptier
-than it is. It happened four times in two days in the repository that publishes this skill, and a
-human found all four (private D-80).
+than it is. It happened four times in two days in the private repository this scaffold grew in, and
+a human found all four (private D-80).
 
 ## LOCK RESOLUTION (when the user rules on a locked pair/group)
 
@@ -1570,141 +1177,59 @@ states which of the two situations applies. Read that field in CONFIG and report
 
 ## RULES
 
-- **Classify every PR, and print the reason.** An `auto` row needs its reason as much as an
-  `escalate` row does.
-- **Fail closed.** A condition you cannot evaluate counts as met, and the PR escalates.
+**The hard rules, one sentence each.** No issue, verdict or approval overrides one of them.
+
+- **Fail closed:** a condition you cannot evaluate counts as met, and the PR escalates.
 - **Never merge a PR you authored**, in either lane, on any verdict.
-- **Never merge a stacked child before its parent**, in either lane, on any verdict, and on any
-  approval. Find every child in SETUP's second listing pass, because the first one cannot see one.
-  See STACKED PAIRS.
-- **Merge a parent that carries an open stacked child with a merge commit, and keep its branch.**
-  Then retarget each child to BASE, re-run its checks, re-classify it, and re-present it on its
-  current head SHA. A retarget changes the base and never a commit, so no child is ever rebased.
-- **Never merge to resolve uncertainty**, in either lane. Conflicts, failing checks, a locked
-  pair, or a stale ticket mean stop and report.
-- **The escalate lane never merges without the user.** It queues each card's question and moves to
-  the next PR, and the DIGEST presents every queued question at the end (`CLAUDE.md` §13). Only
-  merge + update the tracker after the user explicitly approves THAT specific PR. Approval never
-  carries from one PR to the next, and it lapses if the diff changes after it was given —
-  re-present and re-ask.
-- **Queue a question rather than stopping, wherever stopping is not required** (`CLAUDE.md` §13).
-  Two questions are never queued: a locked-pair ruling, and the confirmation for a destructive
-  action such as closing a PR. Ask each one in place, and wait.
-- **The auto lane merges only on `approve` from the independent reviewer.** Anything else — a
-  different verdict, no verdict, or a reviewer that did not run — moves the PR to the escalate
-  lane. Never supply that verdict yourself.
-- **The independent verdict comes from a separately dispatched agent.** A verdict produced inside
-  this loop's own context is not a verdict, and it merges nothing. A session that cannot dispatch
-  that agent has no auto lane, and LANE AVAILABILITY says so before the first PR is read. A relayed
-  verdict is the one exception to that lane rule, and it is not an exception to this one.
-- **A verdict may be relayed to the merger.** A caller that already holds an independent verdict
-  hands it over. Dispatch no reviewer for that PR. That verdict belongs to the head SHA it names.
-  Read the PR's current head yourself, and treat the verdict as void when the two differ. See
-  A RELAYED VERDICT.
-- **An answer may be relayed to the merger, and only the user's own words approve.** Refuse a
-  summary, an answer for another PR, and an answer for another head. State each refusal. The auto
-  lane needs no answer, and never waits for one. See A RELAYED ANSWER.
-- **No green signal ⇒ no auto lane.** Announce it once and run the whole batch through the
-  escalate lane.
-- **No checks reported is red.** Re-poll once, then escalate. Never read an empty check set as
-  nothing to fail.
-- **Every line you present follows the PLAIN-LANGUAGE RULE** — the PR summary, every escalation
-  reason, every finding, every blocker, every conflict classification, every lock statement, the
-  sweep result, the risk map, the final summary and every question. A jargon-free, effect-first
-  explanation is required, not optional. Technical detail stays off the review card, and you print
-  it when the user asks for it — after the plain summary, never instead of it.
-- **Report an auto-merged PR in plain English, exactly as you present an escalated one.** Print the
-  WHAT IT DOES block the review card defines, above the merge SHA, the tracker result and the sweep
-  result. Nobody watched this merge happen, so this report is the only account of it.
-- **An identifier never explains a finding on its own.** Write the plain sentence, then cite the
-  condition, the check, the shape or the section after it. Rewrite any line where the number is
-  doing the explaining. Keep every identifier you had: the sentence carries the meaning, and the
-  identifier keeps the run auditable.
-- **Gloss the loop's own vocabulary** wherever it reaches a presented line — footprint, green
-  signal, BASE, head SHA, dependency signal, sweep, lock, lane, classification, and the two
-  conflict classes. Half a sentence each, from the table in PLAIN-LANGUAGE RULE.
-- **Reconcile a card's findings before you present it.** Open every review card with a BOTTOM LINE
-  naming the finding that decides the merge. Compute it last, and print it first. Say in the open
-  when two findings disagree, and name the one that decides. Reconcile the card against its
-  classification too, not only its bullets against each other. A restated finding that contradicts
-  the PR's classification row is a stop, and you pick neither reading. Never hand the user an
-  unreconciled stack of verdicts.
-- **A review card has a fixed shape and a length budget.** Print DECISION, then WHAT IT DOES, then
-  EVIDENCE, and keep the body to 25 lines or fewer. Buy that brevity by cutting words. Never buy it
-  by replacing a plain sentence with a condition number, and never by dropping a finding.
-- **Close every stop with an ASK block** — one question, one line on what the run already tried
-  when it tried anything, each option and what it causes, the recommended option first with its
-  reason, and what stays blocked until the user answers. The
-  stops are the PROBE order approval, a locked pair, an `intent` conflict, a repair hand-off, the
-  review card and the FINAL SUMMARY. The FINAL SUMMARY is the only one that may end without a
-  block, and only when the
-  run left nothing waiting on the user. A queued block is re-printed in the DIGEST, never rewritten.
-  **The PROBE order approval is not a stop at a queue of one open PR, or in SINGLE-PR MODE**,
-  because one PR has one order. Those are the only exceptions, and PROBE still runs in both.
-- **One decision per ASK block.** Never compound two questions into one. Ask the second question
-  after the user answers the first.
-- **PROBE is mandatory** and happens before CLASSIFY and before any merge — never skip it to save
-  time. A per-PR gate alone surfaces problems just-in-time; PROBE surfaces batch-wide problems up
-  front. Both run. **Degenerating is not skipping.** A queue of one open PR runs steps 1, 2 and 4
-  and drops the cross-batch steps, because a pair is what they read. A queue of two or more runs
-  every step, and no queue size lets you skip the phase. SINGLE-PR MODE scopes the phase to its
-  one PR — the schema check and every pair that includes that PR — and never skips it.
-- **HARD STOP on locked pairs:** if two (or more) PRs are flagged as semantically conflicting,
-  NEITHER may be merged in either lane until the user explicitly declares which wins. This
-  overrides the merge order and the classification — a locked PR is skipped, not merged, no matter
-  its position or its lane. Never auto-resolve, never guess, never merge one "to see." The lock is
-  released only by the user's ruling.
-- **Never close a PR and never force-push**, in either lane, whatever a conflict classifies as.
-  Closing needs the user's explicit go-ahead for that PR. Force-pushing is never permitted here.
-- Never change a ticket if its PR was skipped, locked, or not merged.
-- **Read every PR body against its current diff** (pre-merge check 7). A body that describes a
-  superseded version of the change fires escalation condition 7. Report it on the card, and never
-  wave it through as a note.
-- **Post the review record on every PR you review, in both lanes.** One comment on the PR carries
-  the outcome of pre-merge checks 2–5 and 7, and that comment is the only valid surface for it
-  (`CLAUDE.md` §6). Post it before the merge. Post it even when the PR does not merge. Merge nothing
-  whose record failed to post. See REVIEW RECORD.
-- **Sweep the dependents after every merge**, in both lanes. See DEPENDENT SWEEP. Clear the signal
-  only on a ticket whose blockers are all complete. Keep it, and name the open blocker, on a ticket
-  that still has one. Leave it, and report the ticket, whenever you cannot verify a blocker's
-  state. Sweep only the tickets the merged ticket blocked.
-- If the tracker update fails (auth, wrong state name, ticket not found), tell the user — do NOT
-  retry blindly or guess a different state/ticket. The merge still stands; report the mismatch.
-- Merging changes BASE, so re-fetch before each PR, and re-check the risk map after each merge.
-  Re-read the diff and re-check conflicts when the head SHA or BASE has moved since the
-  classification.
-- **Classify every conflict, then act on the class.** Resolve a `mechanical` conflict on the branch
-  and push it. Escalate an `intent` conflict, and name both sides. Print the classification and its
-  reason either way. `intent` is the default, and an unclassifiable conflict is `intent`.
-  See CONFLICT.
-- **Never merge through a conflict.** Resolving one on the branch is permitted. Resolving one
-  inside the merge is not, in either lane, on any verdict.
-- **Repair a defect on the branch rather than handing the PR back to its author.** Repair only the
-  five shapes REPAIR lists, inside the issue's declared footprint, and only after you watch the
-  project's whole pre-PR gate pass in a scratch worktree. Discard a repair whose gate fails, and
-  escalate instead. See REPAIR.
-- **Repair every repairable finding, however many passes that takes.** There is no cap. Audit the
-  whole body or file against the diff before calling a pass complete — a half-repaired record is
-  worse than an unrepaired one, because the parts you fixed make the parts you missed look checked.
-  A failed gate and a red check stop a repair; a pass count never does.
-- **Never repair a policy flag.** A risk-listed path, a footprint stray, an oversized diff, a
-  weakened test, a cancelled ticket, a contradicting decision, an irreversible effect, an `intent`
-  conflict and a locked pair are not defects, and repairing one decides scope on the user's behalf.
-- **A repair makes you the PR's author**, and the resolution-commit exemption (private D-77) does
-  not reach it. Never merge that PR, and never fetch a verdict on it. Hand it off, and leave the
-  repair record a later session reads.
-- **A PR carrying a repair record you wrote always escalates.** A record another agent wrote
-  escalates nothing on its own, and the remaining conditions decide the lane. See AUTO LANE for the
-  three things you verify before merging such a PR.
-- **A resolution voids the PR's approvals.** The diff changed, so the human approval, the
-  reviewer's verdict and the classification all lapse. Re-classify, then re-present or re-review.
-- **Never resolve a conflict on a locked pair**, and never resolve one on a PR whose own work you
-  authored. Both hold whatever the hunks look like.
-- Before merging, honor the seven pre-merge checks in `CLAUDE.md` §6 — correctness, decision
-  freshness against the decision log, duplicate check, staleness vs BASE, ticket still valid,
-  out-of-band verification, and body freshness. The independent reviewer covers them in the auto
-  lane; PROBE, CLASSIFY and the review card cover most of them in the escalate lane. Flag anything
-  still open.
+- **Never merge a stacked child before its parent**, in either lane, on any verdict or approval.
+- **Never merge to resolve uncertainty**, in either lane.
+- **Never weaken, skip or delete a test**, to make a repair pass or for any other reason
+  (`CLAUDE.md` §11 rule 10).
+
+**Every other rule lives in the section this index names.** Read the rule there.
+
+- Classify every PR, and print the reason: CLASSIFY.
+- Find every stacked child, and merge its parent with the stacked-parent strategy: SETUP step 2,
+  CONFIG and STACKED PAIRS.
+- The escalate lane never merges without the user's approval of that PR: ESCALATE LANE.
+- Queue a question, except the questions asked in place: ASK BLOCK.
+- The auto lane merges only on `approve` from a separately dispatched reviewer: AUTO LANE, and
+  LANE AVAILABILITY.
+- A verdict your caller relays: A RELAYED VERDICT.
+- An answer your caller relays, where only the user's own words approve: A RELAYED ANSWER.
+- No green signal means no auto lane: LANE AVAILABILITY.
+- No checks reported is red: CLASSIFY, "No checks reported is RED".
+- Every presented line in plain English, with each identifier after its sentence: PLAIN-LANGUAGE
+  RULE.
+- An auto-merged PR reported in plain English: AUTO LANE step 19.
+- Reconcile a card before you present it: ESCALATE LANE, "Reconcile the bullets before you present
+  the card".
+- The card's three blocks, its ten EVIDENCE items and its length budget: ESCALATE LANE, "The card
+  has three blocks, printed in this order".
+- Close every stop with an ASK block, one decision per block: ASK BLOCK.
+- PROBE is mandatory, and degenerating is not skipping: PROBE.
+- The HARD STOP on locked pairs: ESCALATE LANE's lock check, PROBE step 6, and LOCK RESOLUTION.
+- Never close a PR without the user's go-ahead for that PR: LOCK RESOLUTION.
+- Never force-push: CONFLICT, REPAIR bound 8, and STACKED PAIRS item 5.
+- Never change a ticket for a PR that did not merge: the merge steps of AUTO LANE and ESCALATE
+  LANE.
+- Read every PR body against its current diff: CLASSIFY condition 7.
+- Post the review record on every PR you review: REVIEW RECORD.
+- Sweep the dependents after every merge: DEPENDENT SWEEP.
+- Report a failed tracker update, and never retry or guess: AUTO LANE, "Never merge to resolve
+  uncertainty", and `CLAUDE.md` §6 approval gate rule 5.
+- Re-fetch before each PR, and re-check the risk map after each merge: AUTO LANE steps 1, 17 and
+  18, and ESCALATE LANE's freshness check.
+- Classify every conflict, and never merge through one: CONFLICT.
+- Repair a defect on the branch, repair every repairable finding, and never repair a policy flag:
+  REPAIR.
+- A repair makes you the PR's author, and a repair record you wrote escalates the PR: REPAIR, and
+  CLASSIFY's third gate.
+- A resolution voids the PR's approvals: CONFLICT, "A resolution voids every approval the PR
+  already carried".
+- Never resolve a conflict on a locked pair or on your own work: CONFLICT's two gates.
+- Honour all seven pre-merge checks in both lanes: CLASSIFY, "The seven pre-merge checks still
+  apply", and the card's EVIDENCE.
 
 ## DIGEST (present the escalation queue once, at the end)
 
@@ -1769,10 +1294,11 @@ decisions the DIGEST carries, or that it carries none. Write it for a reader who
 cards (PLAIN-LANGUAGE RULE). The table above is the record; this paragraph is the answer.
 
 **Name every auto-merged PR that carried a repair, in that closing paragraph.** Give its number, its
-repair round count, and what each round repaired. Those sentences are additional to the three above.
+repair pass count from its `REPAIRED BY THE MERGE LOOP` records, and what each pass repaired. Those
+sentences are additional to the three above.
 
 Two reasons, and the `Repair` column alone serves neither. A reader who skims the paragraph must
-still see that an agent edited that branch. A PR that needed three rounds says something about the
+still see that an agent edited that branch. A PR that needed three passes says something about the
 issue rather than the code, and nobody sees a pattern that was never printed.
 
 **This is the one stop whose ASK block is conditional** (ASK BLOCK). End without one when the queue
