@@ -7,9 +7,8 @@ description: >-
   is eligible, then report the terminal state. Every open PR's files stay reserved, and a
   child issue stacks on its parent's open PR only when it asks for that stacked lane.
   Works with any tracker (Linear, Jira, GitHub Issues, GitLab, etc.);
-  the tracker, the lane budget and the footprint policy are read from PROJECT.md, not
-  hard-coded. Use when the user says "work the backlog", "run the issue loop", "clear the
-  queue", or similar.
+  the tracker and the lane budget are read from PROJECT.md, not hard-coded. Use when the user says
+  "work the backlog", "run the issue loop", "clear the queue", or similar.
 ---
 
 # Autonomous Issue Loop (tracker-agnostic, wave-scheduled)
@@ -62,11 +61,9 @@ project setup, and recorded in `PROJECT.md`.
    **If `PROJECT.md` declares no input-needed signal, STOP before the first wave.** Ask the owner
    to declare one. Without it, a bounced question is lost.
 
-2. Resolve three more fields. Read the first two from the project's merge-gate section:
+2. Resolve two more fields. Read the first from the project's merge-gate section:
    - **Lane budget** — how many issues may run in parallel. §6 caps the running lanes at this
      number.
-   - **Footprint policy** — whether a PR straying outside its issue's declared footprint
-     escalates to a human. §4 reports strays either way.
    - **Pre-PR gate** — every lane runs it before it opens a PR. Run the pre-PR gate that
      `PROJECT.md` declares in its "Build / lint / test commands" section. Skip a command declared
      `none`, and record it as declared none.
@@ -316,10 +313,20 @@ Every lane runs these steps for its own issue. The coordinator dispatches the la
 
    A stacked child syncs with its parent's branch instead, under `references/stacked-lane.md`.
 8. **Compare your changed files against the declared footprint.** List the files the branch
-   actually changed, and name every one the footprint does not cover. Report the strays in the
-   PR body under their own heading. Never hide a stray, and never widen the footprint to cover
-   it. Straying is information the reviewer acts on (`CLAUDE.md` §6). Say "this issue declared
-   no footprint" in the PR body when it declared none.
+   actually changed, and name every one the footprint does not cover.
+   - Revert a stray that no acceptance criterion needs and no falsified document explains.
+   - For every other stray, write a widening request in the PR body, in one of these two forms:
+
+     ```markdown
+     ## Footprint widening request
+
+     - `<path>` — needed for: "<the acceptance criterion, quoted>" — <why this file must change>
+     - `<path>` — made false by this change: "<the passage, quoted>" (<document>, <section>) — <what in the diff makes it false>
+     ```
+
+   - Never edit the issue's footprint yourself.
+
+   Say "this issue declared no footprint" in the PR body when it declared none.
 9. Commit `<type>: <summary> (<issue-id>)` — the form `CLAUDE.md` §3 defines. Push, and open a PR
    that links the issue via the tracker's mechanism. Title the PR `<issue-id>: <summary>`. Put
    these in the body:
@@ -443,7 +450,8 @@ Record the result in END OF RUN's `Claim released` column.
 - **Never let a stacked child merge before its parent.** This loop merges nothing, so it states
   the stack in the child's PR body (§4 step 9) and in the run report (`END OF RUN`). The merge
   flow holds the child until the parent merges (the `pr-merge-loop` skill's STACKED PAIRS phase).
-- Never invent, widen, or narrow a declared footprint.
+- Never invent, widen, or narrow a declared footprint. Request a widening in the PR body instead
+  (§4 step 8).
 - Never run more lanes than the budget in `PROJECT.md` allows.
 - If the default branch's tests were already failing, say so; don't silently fix them.
 - Same error twice → stop, `ADD_COMMENT` the blocker, return the lane as bounced (§5), move on.
@@ -456,8 +464,9 @@ Record the result in END OF RUN's `Claim released` column.
 
 ## END OF RUN
 
-Print these blocks, in this order: the terminal-state line, the Dispatched table, the Held back
-table, the lane-budget line, the Stack block, the Worktrees line, and the Escalation digest.
+Print these blocks, in this order: the terminal-state line, the Dispatched table, the Footprint
+widenings requested block, the Held back table, the lane-budget line, the Stack block, the Worktrees
+line, and the Escalation digest.
 
 **Terminal state** — name every state §1 step 10 reached, in plain English. Give the count of
 issues still eligible-but-held on that line. Name the issues each state holds back, by id. Print
@@ -494,10 +503,19 @@ Use that vocabulary, and invent no second one.
 | Wave | Lane | Issue | Title | Priority | Footprint | Status | PR | Claim released |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 
-Fill `Footprint` with `inside`, `strayed: <files>`, or `none declared`. Fill `Status` with
-`PR opened`, `input-needed`, or `blocked`. Fill `Claim released` with `yes` for a bounced issue
-whose release (§5) read back as applied. Write `no: <the call that failed>` when it did not apply.
-Write `kept` for an issue whose PR opened, because that claim stays until the merge.
+Fill `Footprint` with `inside`, `strayed: <files>`, `widening requested: <files>`, or `none
+declared`. Fill `Status` with `PR opened`, `input-needed`, or `blocked`. Fill `Claim released` with
+`yes` for a bounced issue whose release (§5) read back as applied. Write `no: <the call that
+failed>` when it did not apply. Write `kept` for an issue whose PR opened, because that claim stays
+until the merge.
+
+**Footprint widenings requested** — print one request line for each widening request a lane wrote
+in its PR body, in this form. Print the sentence "This run requested no footprint widening." when
+no lane wrote one.
+
+```markdown
+**Footprint widening requested — PR #<n>, issue #<id>: `<path>` — <why>. Not yet decided.**
+```
 
 **Held back** — one row per issue the wave excluded:
 

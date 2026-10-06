@@ -335,7 +335,7 @@ Name the section inside a document you must update — `PROJECT.md`, "Build / li
 not `PROJECT.md` alone. Name a `PROJECT.md` section; never number it.
 Be specific enough to check a diff against: `src/reports/export.ts`, not "the reports code".
 Use repository paths only, under the footprint rule below.
-State that a PR straying outside this list escalates to a human, and is not the implementer's call.
+State that a PR straying outside this list escalates to a human, unless the independent reviewer approves a widening the PR body requests (`CLAUDE.md` §6, escalation condition 3). A request names the acceptance criterion the path serves, or the document passage the change makes false. The implementer may request a widening, and never approves one. The owner may approve an extra file by approving the PR.
 
 ## Contract
 The frozen interfaces this issue must build against — types, signatures, endpoint shapes, error

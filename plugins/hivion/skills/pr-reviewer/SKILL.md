@@ -7,8 +7,8 @@ description: >-
   a clean worktree cut from the branch, evaluates the seven pre-merge checks and the eight
   escalation conditions from CLAUDE.md §6, and escalates whenever a condition cannot be
   evaluated. It posts one verdict comment. It merges nothing, pushes nothing, and edits no file.
-  Tool-agnostic: the repo host, green signal, risk-list paths, size threshold, footprint policy
-  and tracker are read from PROJECT.md, not hard-coded. Use when a merge flow needs an
+  Tool-agnostic: the repo host, green signal, risk-list paths, size threshold and tracker are read
+  from PROJECT.md, not hard-coded. Use when a merge flow needs an
   independent verdict before the auto-merge tier, or the user says "review PR #N", "is this safe
   to merge", or similar.
 allowed-tools: Read, Grep, Glob, Bash, TodoWrite
@@ -50,6 +50,7 @@ A failed independence check ends the run, and every phase after it is wasted wor
 ## 0. INDEPENDENCE — establish it first, or stop
 
 Run this phase before you read the diff. A reviewer who is not independent has no verdict to give.
+You never request a widening. A change the diff needs and lacks is a check-1 finding.
 
 1. Record the pull request's head commit SHA: `gh pr view <n> --json headRefOid`. Read it from the
    host. Never take it from the invocation.
@@ -178,7 +179,6 @@ Read `PROJECT.md` at the repo root and resolve, once per run:
 - **Risk-list paths** — the globs that escalate on any match, green signal or not. Note the
   change types an entry names beside its glob, such as "modified or deleted".
 - **Size threshold** — the declared line and file limits for the auto-merge tier.
-- **Footprint enforcement** — on or off.
 - **Tracker and issue-id format** — enough to find this pull request's ticket.
 - **The pre-PR gate** — Run the pre-PR gate that `PROJECT.md` declares in its "Build / lint /
   test commands" section. Skip a command declared `none`, and record it as declared none.
@@ -383,8 +383,32 @@ fired ones hides which ones you skipped.
 2. **Green signal not green.** Read the check results. This fires on any required job that fails,
    is pending, is cancelled, or never reported. Re-poll once before you conclude the set is
    empty. Treat no checks reported as red, never as nothing to fail.
-3. **Footprint stray.** Compare the changed files against the declared footprint from §2. Name
-   every stray file. Evaluate this condition only where §1 found footprint enforcement on.
+3. **Footprint stray.** Compare the changed files against the declared footprint from §2. Evaluate
+   each path outside it:
+   - **No request in the PR body:** not approved. The condition fires.
+   - **Requested, and risk-listed:** the owner decides. The condition fires, and condition 1 fires
+     too.
+   - **Requested for an acceptance criterion, not risk-listed:** approve it only when that criterion
+     needs the path. Quote the criterion.
+   - **Requested for a falsified document, not risk-listed:** read the document. Approve it only when
+     the diff really makes the quoted passage false. Quote that passage, and say you confirmed it by
+     reading.
+   - **Requested, but neither reason holds:** refuse it, and say why. The condition fires.
+
+   Write each path's reason in one of these forms:
+
+   ```text
+   clear — widening approved: <path> — serves: "<criterion, quoted>"
+   clear — widening approved: <path> — this diff makes false: "<passage, quoted>" (<document>, <section>) — confirmed by reading it
+   fired — widening needs the owner: <path> — risk-listed
+   fired — widening refused: <path> — <why it is not needed, or why the passage stays true>
+   fired — unrequested stray: <path>
+   fired — no declared footprint
+   fired — footprint entry names no path: "<the entry, quoted>"
+   ```
+
+   The last two lines fire with no path to name. Use them when the ticket declares no footprint,
+   or when a footprint entry names no path.
 4. **A test deleted, skipped or weakened.** Search the diff for removed test files, removed
    assertions, and skip markers. Search it for an updated snapshot or expected-output fixture. Search
    it for a loosened threshold, tolerance or timeout. Each one fires this condition. A snapshot
@@ -545,7 +569,9 @@ Re-read the verdict as the agent that will act on it, and kill it if:
 - It clears a condition without naming the evidence that cleared it.
 - It reports a check as passing that you did not actually run.
 - It cites a decision entry you did not open.
-- It clears the footprint condition without quoting the declared footprint.
+- It clears a footprint path without a quoted criterion, or a quoted and confirmed passage, in one of
+  the `clear` forms above.
+- It requests a widening for a path, instead of leaving the request to the implementer.
 - It approves a pull request whose author you could not distinguish from yourself.
 - It fails check 1 for an unjustified line without quoting the line and naming its shape.
 - Its reason would not tell a human what to do next, on its own.

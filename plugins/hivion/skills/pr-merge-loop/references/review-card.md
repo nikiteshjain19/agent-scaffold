@@ -18,6 +18,16 @@ merge.
    finding that decides the merge. Write it so a user who reads nothing else can act on it.
 3. One bullet per escalation reason. Say what you observed and what it means for this merge. Cite
    the condition number after the sentence, never instead of it.
+4. **The footprint widenings.** Name every requested widening and the reviewer's decision on it.
+   Print one bold line for each extra file the reviewer did not approve, in this form:
+
+   ```markdown
+   **Unexplained extra file — `<path>`: the PR body gives no reason for changing it. Approving this PR approves the file.**
+   **Refused extra file — `<path>`: the reviewer refused it — <the reviewer's K10g reason>. Approving this PR approves the file.**
+   **Extra file that needs you — `<path>` (risk-listed): <the request's reason>. Approving this PR approves the file.**
+   ```
+
+   An approved widening needs no line on the card. It appears in the FINAL SUMMARY and on the issue.
 
 **WHAT IT DOES — what lands if the user says yes.**
 

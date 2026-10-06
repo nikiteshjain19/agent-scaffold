@@ -136,8 +136,8 @@ Read `PROJECT.md`'s "Parallelism" section once per run, and resolve two numbers:
 
 State both resolved numbers, and where you read each one, before the first cycle.
 
-Resolve everything else from the skill that owns it. The tracker, the lane budget and the footprint
-policy come from the `issue-loop` skill's own configuration phase. The merge gate, the green signal,
+Resolve everything else from the skill that owns it. The tracker and the lane budget come from the
+`issue-loop` skill's own configuration phase. The merge gate, the green signal,
 the risk list and the size threshold come from the `pr-merge-loop` skill's. Read none of them
 yourself, and pass none of them down.
 
@@ -302,8 +302,8 @@ block discards one when its head moved, under RUN-ORDER QUESTIONS. Report each d
 ## 1. WAVE — one wave per cycle
 
 1. Invoke the `issue-loop` skill in this context. Let it select and dispatch its own wave.
-2. Change none of its rules. Wave selection, the disjointness test, the lane budget and the
-   footprint policy are that skill's, and you re-decide none of them.
+2. Change none of its rules. Wave selection, the disjointness test, and the lane budget are
+   that skill's, and you re-decide none of them.
 3. **Let that run take exactly one wave.** It runs its §1 once and dispatches that wave. It refills
    nothing, and goes to END OF RUN once its dispatched lanes return. That skill states the same rule
    for a run under this one.
@@ -497,6 +497,7 @@ merger has returned.
       C3 or C5.
    2. **The outcome of the seven pre-merge checks**, taken from the verdict's `FINDINGS` block.
    3. **One bottom-line sentence** that names what decides the merge.
+   An entry whose verdict carries an owner-decided widening names each path and its reason.
 4. Re-print a merger's queued question unchanged. Say which cycle a carried entry came from.
 5. Name the stop predicate that ended each pull request's loop, and the round number.
 6. Name the head commit each entry describes, from its verdict's `HEAD` field.
@@ -718,6 +719,15 @@ Then name the run predicate that stopped the run, by name.
 Then print each merger's own final summary and digest, unchanged.
 
 Then print every question the closing pass raised, unchanged. Say that its pull request stays open.
+
+**Footprint widenings.** Print this bold section. Re-print every K10i line the mergers reported, in
+bold, in this form:
+
+```markdown
+**Footprint widened — PR #<n>, issue #<id>: `<path>` — <why>. Approved by <approver>, on head <SHA>. Revert it by reverting PR #<n>, or by asking for the file to be restored.**
+```
+
+Or print the sentence "This run approved no footprint widening."
 
 **Close with a plain paragraph.** Write three sentences or fewer: what merged, what did not, and
 what the run needs next. Write it for a reader who saw none of the cycles.
