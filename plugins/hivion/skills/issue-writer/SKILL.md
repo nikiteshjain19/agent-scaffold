@@ -43,9 +43,11 @@ decisions determine whether the resulting PR is reviewable.
 
 **a) Which repository?** Default to the repo you're running in. If the user supplies a different
 repo (a URL or a path), that is the **target**: clone/fetch or browse it via the host CLI or API
-and research *it*, not the current working directory. State which repo you targeted.
+and research *it*, not the current working directory. State which repo you targeted. Read
+`PROJECT.md` and the decision log from the target repository, never from the one you run in. A
+target with no `PROJECT.md` falls under case 1 below, "`PROJECT.md` is missing".
 
-**b) Which tracker?** Read `PROJECT.md` at the repo root and resolve, once per run:
+**b) Which tracker?** Read `PROJECT.md` at the target repository's root. Resolve, once per run:
 
 - **Tracker + scope** — which system, and the team / project / board / repo whose backlog you
   file into. (It is not always the same place the code lives.)
@@ -66,17 +68,43 @@ and research *it*, not the current working directory. State which repo you targe
   creation time is wrong. Resolve which it is before you file.
 - **Id format & auto-link convention** — `#N`, `ABC-123`, etc., and how a PR closes an issue
   (`Closes #N`, branch-name linking, …). Issues you write must be referenceable by that format.
-- **Dependency mechanism** — *does the tracker have native relations?* Linear and Jira do; plain
-  GitHub Issues do **not**. If it doesn't, dependencies are expressed as text ("Blocked by #N")
-  plus a checklist on a tracking issue. Decide which you're using before §6.
+- **Dependency mechanism** — read it from `PROJECT.md`'s tracker mapping: native relations, or
+  text. The text form is "Blocked by #N" in the issue's `## Dependencies` section. When the
+  mapping is silent, use the text form. Say so in the plan. Decide which you're using before §6.
+- **Dependency signal** — read it from `PROJECT.md`'s tracker mapping. It marks an issue with an
+  open blocker, for example a `blocked` label. The merge flow clears it once every blocker is
+  complete. §6 step 3 applies it. When the project declares none, say so once in the plan.
+- **Size threshold** — read it from `PROJECT.md`, "Merge gate". A PR over it escalates to a human
+  (`CLAUDE.md` §6, escalation condition 5). §5's issue table flags each issue expected to exceed it.
+- **Owner identity** — read it from `PROJECT.md`'s tracker mapping. It is the owner's account on
+  the tracker. Only a comment this account wrote counts as the owner's approval (§5, pre-approved
+  path). When the project declares none, a tracker comment never counts as approval.
 - **Build/lint/test commands** (`PROJECT.md`, its "Build / lint / test commands" section) — every
-  issue's Verification section quotes these verbatim. If the project has none, say so and apply
-  the CLAUDE.md §11.4 exemption explicitly rather than silently omitting verification.
+  issue's Verification section quotes these verbatim. When the project declares no commands, say
+  so in Verification. Then mark the issue test-unverified (`CLAUDE.md` §11 rule 11). Apply the
+  `CLAUDE.md` §11 rule 4 exemption only to the change types it lists. Never apply it to a
+  `CLAUDE.md` §11 rule 3 path.
 
-**If `PROJECT.md` is missing or has no tracker mapping**, STOP. This is the "where do you manage
-issues?" decision — the same mapping `issue-loop` and `pr-merge-loop` read. Collect it from the
-user, record it in `PROJECT.md` via the normal ticket + PR flow, and log it in the decision
-log (`decisions.d/`).
+**When `PROJECT.md` cannot supply the tracker mapping, one of three cases applies.** Each one is
+the "where do you manage issues?" decision — the same mapping `issue-loop` and `pr-merge-loop` read.
+
+1. **`PROJECT.md` is missing.**
+
+   > **If `PROJECT.md` is missing, STOP.** A missing `PROJECT.md` does not make the project new.
+   > Run `CLAUDE.md` §0, Project Bootstrap. It routes the project to the interview or to the
+   > `project-onboard` skill. Never write a partial `PROJECT.md` from this skill.
+
+2. **The ticket that writes `PROJECT.md`.**
+
+   > **The bootstrap exception.** `CLAUDE.md` §0 and the `project-onboard` skill each file one
+   > ticket before `PROJECT.md` can be read: the ticket that writes it. For that ticket only, use
+   > the tracker mapping the owner confirmed in this session. Name that source in the ticket's
+   > Context. Mark its Verification test-unverified when no commands exist yet (`CLAUDE.md` §11
+   > rule 11). Every other ticket needs `PROJECT.md`.
+
+3. **`PROJECT.md` exists, and it has no tracker mapping.** Ask the user for the mapping. Then file
+   the ticket that adds it to `PROJECT.md`, under the bootstrap exception above.
+
 Do not file issues into a guessed tracker.
 
 ---
@@ -85,6 +113,15 @@ Do not file issues into a guessed tracker.
 
 Run all four. For a large feature, dispatch one subagent per track and have each return
 **findings, not file dumps**.
+
+**The plan path.** Take it when Track B finds a plan file it treats as the design of record. On
+that path, these rules replace the ordinary ones:
+
+- One plan unit becomes one issue. §3 never re-slices, merges or re-orders the units.
+- Skip the §2 clarify round. Ask only about a question the plan leaves open.
+- Research only what the issue body still needs: the files to name, the versions, and the
+  document-impact question (Track B).
+- Raise a gap or a mismatch with the user. Never correct the plan.
 
 ### Track A — the target repository (ground truth)
 
@@ -96,7 +133,8 @@ Run all four. For a large feature, dispatch one subagent per track and have each
   any docs describing **specific requirements for submitting issues** (required sections,
   mandatory labels, a triage process, a "no feature requests without X" rule). If the project has
   an issue template, your issue **conforms to it** — the anatomy in §4 fills it in, it does not
-  replace it. Note any conflict and say which you followed and why.
+  replace it. One exception overrides the template: it never renames or drops a machine-read
+  heading (§4). Note any conflict and say which you followed and why.
 - **Conventions** — coding style, naming conventions, commit/PR title format, directory idiom,
   how similar features are tested and error-handled. Issues must instruct an agent to *extend*
   this codebase, not invent a parallel design (CLAUDE.md §4.5).
@@ -136,9 +174,15 @@ Run all four. For a large feature, dispatch one subagent per track and have each
   into waves — treat it as the design of record. Carry its wave, footprint, and contracts into
   each issue you draft (§4). Do not re-derive the design, and do not re-order the waves. Raise any
   mismatch with the user instead of correcting the plan yourself.
-- **No plan file is not an error.** Draft from Tracks A–D as usual. Mark each issue's Wave "none",
-  and its Contract "none" — with no plan there is no frozen text to quote. The declared file
-  footprint is still required (§4).
+- **No plan file is not an error.** Draft from Tracks A–D as usual. Mark each issue's Wave "none".
+  The declared file footprint is still required (§4). With no plan there is no frozen text to
+  quote, so the batch freezes its own shared surfaces:
+  - Write Contract "none" only for an issue that shares no surface with another issue in the batch.
+  - When two issues share a surface, write the interface in the earlier issue's `## Contract`. The
+    earlier issue is the one §6 step 1 files first.
+  - Quote that text verbatim in the later issue's `## Contract`. Link the later issue blocked by the
+    earlier one.
+  - When three or more issues share one surface, stop. Recommend the `feature-plan` skill.
 
 ### Track C — external: the domain and the dependencies
 
@@ -166,7 +210,8 @@ Run all four. For a large feature, dispatch one subagent per track and have each
   how they open with the problem, where they put repro steps, how they phrase acceptance
   criteria, how much context is enough. Borrow structure, not boilerplate.
 - Reconcile what you find with §4 and the project's own template (Track A). Where they conflict,
-  the project's template and `CLAUDE.md` win; note the deviation in the plan.
+  the project's template and `CLAUDE.md` win; note the deviation in the plan. One exception
+  applies: no template renames or drops a machine-read heading (§4).
 
 **Output of this phase: a research brief** — what exists, what's missing, what's already decided,
 what's external and at which version, and any house issue-format rules you must follow. You reuse
@@ -175,38 +220,57 @@ executable.
 
 ## 2. CLARIFY — ask before drafting, not after
 
-Ask only the questions whose answers would change the issue set — a handful at most, in one
-round, before you draft:
+**On the plan path (§1), skip this round.** Ask only about a question the plan leaves open.
+
+Otherwise, ask only the questions whose answers would change the issue set — a handful at most, in
+one round, before you draft:
 
 - Who is this for, and what does "done" look like for the **first** shippable version?
 - What is explicitly **out of scope** / a non-goal?
 - Hard constraints: deadline, budget/spend cap, compliance, a service that must be used.
 - Is this a new capability or an extension of something in Track A's findings?
 - Milestone: does this ship now, or after something already in the backlog?
-- **Where did this request come from?** A Featurebase/Canny post, a support ticket, a Slack
+- **Where did this request come from?** A feedback-board post, a support ticket, a Slack
   thread, a customer call, a design doc — get the **link**. It goes in the issue (§4) so the
   implementer can read the original ask and the maintainer can see the demand behind it.
 
-If the user answers "you decide", make the call, say so, and record it in the decision log
-(CLAUDE.md §0/§7) so the resulting issues are traceable to a decision rather than to a guess.
+If the user answers "you decide", make the call and say so. Record the call inside the issue, so
+the issue is traceable to a decision rather than to a guess:
+
+- Add an Instructions step that writes `decisions.d/<date>-<issue-id>.md`, in the `CLAUDE.md` §7
+  format. State the call and its reason in that step.
+- Put that path in the issue's Declared file footprint (§4).
+
+The implementing lane commits the entry on its own branch (`CLAUDE.md` §7). This skill never
+commits a decision itself.
 
 ## 3. DECOMPOSE — slice the feature into issues
 
+**On the plan path (§1), one plan unit becomes one issue.** Never re-slice, merge or re-order the
+units here. Raise a gap or a mismatch with the user instead of correcting the plan.
+
 - **One issue = one PR-sized change.** `issue-loop §4.3` stops and asks when work exceeds ~10
   files or changes a public API — so slice deliberately below that. If you can't state the
-  acceptance criteria in ~6 observable checks, it's too big.
+  acceptance criteria in ~6 observable checks, it's too big. Flag in §5's issue table every issue
+  expected to exceed the size threshold (§0). Escalation condition 5 sends its PR to a human.
 - **Vertical slices, not layers.** "User can export a report" (schema + endpoint + UI + test) —
   not "add table", "add endpoint", "add button" as three tickets. Layer-slicing is the single
   most common way orphan infrastructure gets built.
 - **Never file an artifact ahead of its consumer** (CLAUDE.md §5.3). If a slice must land infra
   first, its consumer ships in the **same milestone** and the two are linked at creation time
   (§5.4). If nothing will consume it this cycle, don't file it — say so in the plan.
-- **Order is part of the deliverable.** Every issue gets a milestone; dependent issues get an
-  explicit blocked-by; the blocker gets the higher priority. `issue-loop` refuses to start work
-  whose blocker is open, so unlinked dependencies stall the loop silently.
+- **Order is part of the deliverable.** Apply a milestone only when `PROJECT.md` declares a
+  milestone model. Otherwise write `Milestone: none` in the issue's `## Dependencies`. Never create
+  a milestone. Dependent issues get an explicit blocked-by; the blocker gets the higher priority.
+  `issue-loop` refuses to start work whose blocker is open, so unlinked dependencies stall the
+  loop silently.
 - **Unresolved approach ⇒ a spike, not a guess.** When Track C can't settle a choice, file a
-  timeboxed spike whose deliverable is a decision-log entry, and mark the dependent issues
-  blocked by it. Never file speculative implementation issues against an undecided design.
+  timeboxed spike:
+  - File the spike alone.
+  - Its deliverable is a decision entry that lists the follow-up issues.
+  - File the follow-up issues after that entry merges.
+
+  Never file speculative implementation issues against an undecided design.
 - **Prefer fewer, better issues.** Three executable tickets beat ten vague ones.
 
 ## 4. ISSUE ANATOMY — the required shape of every issue
@@ -224,7 +288,7 @@ Body, in this order:
 ```markdown
 ## Context
 Why this exists: the user problem, where it fits, the decision or milestone it serves. 2–4 sentences.
-**Source:** link to the originating request (Featurebase/Canny post, support ticket, Slack thread,
+**Source:** link to the originating request (a feedback-board post, support ticket, Slack thread,
 design doc). If there is no external source, say "internal — <who asked and when>".
 
 ## Instructions
@@ -242,7 +306,10 @@ the specific test to add.
 What NOT to do. This is what keeps the implementing agent inside the lines.
 
 ## Dependencies
-Blocked by / blocks (tracker mechanism from §0), and the milestone.
+Blocked by / blocks (tracker mechanism from §0), and the milestone. Write `Milestone: none` when
+PROJECT.md declares no milestone model (§3).
+Add the stack-request line `Stack on: #<parent issue id>` only when the owner or the plan asks for
+a stacked lane. The `issue-loop` skill reads it. Write it in no other case.
 
 ## Wave
 The wave this issue belongs to, and the plan file it came from — e.g. "wave 2 of
@@ -253,12 +320,14 @@ Every file and directory this issue is expected to create or change, as a list, 
 Name the section inside a document you must update — `PROJECT.md`, "Build / lint / test commands",
 not `PROJECT.md` alone. Name a `PROJECT.md` section; never number it.
 Be specific enough to check a diff against: `src/reports/export.ts`, not "the reports code".
+Use repository paths only, under the footprint rule below.
 State that a PR straying outside this list escalates to a human, and is not the implementer's call.
 
 ## Contract
-The frozen interfaces this issue must build against, quoted verbatim from the plan — types,
-signatures, endpoint shapes, error semantics. Write "none" when this issue shares no surface with
-other work.
+The frozen interfaces this issue must build against — types, signatures, endpoint shapes, error
+semantics. Quote them verbatim from the plan. With no plan, write a shared surface in the earlier
+of the two issues that share it, and quote it verbatim in the later one (§1, Track B).
+Write "none" only when this issue shares no surface with another issue in the batch.
 
 ## References
 Always the LAST section, for future reference:
@@ -268,8 +337,12 @@ Always the LAST section, for future reference:
 - Doc URLs with the version checked; the source link from Context; related issues/PRs; decision ids.
 ```
 
-Four rules that decide whether the issue actually works:
+Five rules that decide whether the issue actually works:
 
+- **No template overrides the machine-read headings.** Every issue carries `## Dependencies`,
+  `## Wave`, `## Declared file footprint` and `## Contract`, spelled exactly so. The `issue-loop`
+  and `pr-merge-loop` skills find these sections by heading. A template's sections are added beside
+  them, never substituted.
 - **Write for an agent with no memory of this conversation.** Any fact that exists only in this
   chat must be in the body. The ticket is the record, not the transcript (CLAUDE.md §2).
 - **Every file, repo, or doc you relied on goes in References, at the bottom.** Cite a local file
@@ -285,10 +358,16 @@ Four rules that decide whether the issue actually works:
   blank.
 - **The declared file footprint is never optional.** Fill it on every issue, with a plan or without
   one. `issue-loop` schedules disjoint work from it, and the reviewing agent checks the diff against
-  it — neither can fall back to a guess. Wave and Contract read "none" when no plan exists; the
-  footprint never reads "none". Name the files this issue will *create* as well as the ones it
-  changes — Track A's "if you didn't open the file, don't name it" governs existing code, not a
-  path this issue brings into being.
+  it — neither can fall back to a guess. Wave reads "none" when no plan exists. Contract reads
+  "none" only when the issue shares no surface (§1, Track B). The footprint never reads "none".
+  Name the files this issue will *create* as well as the ones it changes — Track A's "if you didn't
+  open the file, don't name it" governs existing code, not a path this issue brings into being.
+  - Use repository paths only.
+  - A skill name is not a path. Neither is a phrase such as "every skill".
+  - Write a new decision entry as `decisions.d/<date>-<issue-id>.md`, exactly.
+  - Name the earlier entry's file whenever the issue writes `Supersedes` or `Corrects`
+    (`CLAUDE.md` §7).
+  - An issue is not a travelling document, so `CLAUDE.md` §12 does not apply to its footprint.
 
 ## 5. PRESENT THE PLAN — hard stop for approval
 
@@ -305,20 +384,35 @@ Wrap the whole plan in `<plan>` tags. Inside, in this order:
    the template followed, the label and milestone vocabulary used, naming/style conventions
    picked up from Track A, and the assignee decision from §6.2.
 5. **The full body of every issue**, exactly as it will be filed.
-6. **The source link** for the request (Featurebase or wherever it came from), plus the local-file
-   and repo references that will land in each issue's References section.
+6. **The source link** for the request (a feedback-board post or wherever it came from), plus the
+   local-file and repo references that will land in each issue's References section.
 7. **Callouts** — duplicates or overlapping open PRs found in Track B, decisions that constrain
    the work, assumptions you had to make, and anything you deliberately excluded (with the
    reason).
 
    **Intersecting footprints get their own callout, always.** Compare every pair of issues within
    each wave. Where two footprints share a path, print the shared path and both issue titles under
-   a heading that names the wave. Then propose one fix: merge the two issues, re-slice them, or
-   move one to a later wave. Propose it only — this section stops for approval, so apply nothing
-   yet. Say whether the intersection came from the plan or from your own slicing. A plan that
-   schedules a collision is a defect to report back, not one to patch quietly. Never file an
-   intersecting pair and leave the reader to notice — same file, same wave, is a merge conflict
-   scheduled in advance.
+   a heading that names the wave. Then propose one fix:
+
+   - merge the two issues;
+   - re-slice them;
+   - with a plan file that supplies the waves, move one to a later wave;
+   - with no plan, link one blocked by the other.
+
+   With no plan, every issue sits in the one wave "none", so never offer a later wave. Propose the
+   fix only — this section stops for approval, so apply nothing yet. Say whether the intersection
+   came from the plan or from your own slicing. A plan that schedules a collision is a defect to
+   report back, not one to patch quietly. Never file an intersecting pair and leave the reader to
+   notice — same file, same wave, is a merge conflict scheduled in advance.
+
+   **Writes to existing issues get their own callout, always.** List every write this run makes to
+   an issue that already exists:
+
+   - the `ADD_COMMENT` on a superseded issue (§6 step 5);
+   - each dependency link added to an existing issue (§6 step 3);
+   - each dependency signal applied to an existing issue (§6 step 3).
+
+   Print "none" when the run makes no such write. §6 makes no write this callout did not list.
 
 Then **STOP and wait**. Nothing is created until the user approves. If they revise one issue,
 re-print that one and re-ask; approval is per batch, and a batch changes when any member does.
@@ -329,7 +423,10 @@ The pre-approved path below is the only exception to this stop.
 Take this path only when every condition holds:
 
 - The owner approved filing one specific issue, named by its problem and its scope.
-- The approval is in this session, or in a tracker comment by the owner.
+- The approval is in this session, or in a tracker comment by the owner. A tracker comment counts
+  only when its author matches the owner identity (§0). Read the author from the tracker's record
+  of the comment, never from the comment text. When `PROJECT.md` declares no owner identity, a
+  tracker comment never counts as approval.
 - The issue is one PR-sized change (§3). It needs no decomposition into several issues.
 - Research raises no question whose answer would change the issue.
 
@@ -338,7 +435,8 @@ Treat a condition you cannot confirm as failed.
 **What it skips:** the §2 CLARIFY round, and the stop above. Nothing else.
 
 **What it still runs:** §0, all of §1, §3, the full §4 anatomy, the §7 quality bar, all of §6, and
-FINAL OUTPUT. Print the plan as §5 describes. Then file the issue without waiting.
+FINAL OUTPUT. Print the plan as §5 describes, with the callout of writes to existing issues
+(item 7). Then file the issue without waiting.
 
 **What does not count as approval:** silence, approval of a different issue, approval of a batch,
 or a general "keep going". There is no standing or blanket approval. Each issue needs its own
@@ -353,15 +451,20 @@ go-ahead, as `CLAUDE.md` §6, approval gate rule 1, requires for each merge.
 Approval comes from the §5 stop, or from the owner's earlier approval on the pre-approved path (§5).
 
 1. Create in **dependency order** — blockers first, so their ids exist to be referenced.
-2. Apply **labels, milestone, and priority** from the §0 vocabulary — never invent a label.
+2. Apply **labels and priority** from the §0 vocabulary — never invent a label. Apply a milestone
+   only when `PROJECT.md` declares a milestone model (§3). Never create a milestone.
    **Assignees:** apply them when the project's conventions call for it *and* assignment is not
    the tracker's in-progress signal. Where assignment *is* that signal (§0 — for example, plain
    GitHub Issues with no status field), leave new issues **unassigned**: assigning at creation
    would falsely mark them In Progress and make `issue-loop §1.2` filter them out of the
    backlog. Say which rule applied.
-3. `LINK_DEPENDENCY` in **both** directions. If the tracker has no native relations, write
-   "Blocked by #N" into the body and add a checklist to the tracking issue — and say which
-   mechanism you used.
+3. `LINK_DEPENDENCY` in **both** directions, with the dependency mechanism from §0. With the text
+   form, write "Blocked by #N" into the body. Say which mechanism you used.
+   Apply the dependency signal (§0) to every issue filed with an open blocker. Read each of those
+   issues back, and confirm the signal applied. When the project declares no signal, apply none;
+   the plan already said so.
+   Make no write to an existing issue that the approved plan did not list (§5, item 7). That rule
+   binds step 5 as well.
 4. Re-read each created issue to confirm it **rendered**: checkboxes, code fences, tables, and
    links intact; file references clickable where the host supports it.
 5. If Track B found an issue this supersedes, `ADD_COMMENT` there pointing at the new id. Never
@@ -374,7 +477,9 @@ Handing the backlog to `issue-loop` is the user's call.
 
 Before §5, re-read each draft as both readers (maintainer, then implementer) and kill it if:
 
-- The title names a topic, not an outcome — or contains "and".
+- The title names a topic, not an outcome — or joins two outcomes. "Add drag and drop" is one
+  outcome, and passes.
+- A machine-read heading is renamed or missing.
 - An implementing agent would have to ask a question before starting.
 - Acceptance criteria restate the instructions instead of the observable result.
 - It names a file, symbol, or endpoint you never opened (Track A).
@@ -387,6 +492,7 @@ Before §5, re-read each draft as both readers (maintainer, then implementer) an
   (Track B).
 - Verification is missing, or says "make sure it works".
 - It declares no file footprint, or one too vague to check a diff against (§4).
+- A footprint entry names no path.
 - It shares a wave with another issue whose footprint intersects its own (§5, item 7).
 - References is missing the source link, or cites a local file without a stable anchor (§4).
 - It duplicates an open issue or in-flight PR found in Track B.
@@ -403,14 +509,17 @@ Before §5, re-read each draft as both readers (maintainer, then implementer) an
 - **Never begin implementation.** Filing only.
 - **Never file work that contradicts the decision log.** If the feature requires reversing a
   decision, propose the decision change first and flag it in the plan.
-- **No tracker mapping in `PROJECT.md` ⇒ no filing** (§0).
+- **No tracker mapping in `PROJECT.md` ⇒ no filing** (§0), except under the bootstrap exception
+  (§0).
 
 ## FINAL OUTPUT
 
-Present the complete content of each issue inside `<github_issue>` tags — the body exactly as it
-was filed (or, on a draft-only run, exactly as it would be). Put **nothing inside those tags but
-the issue itself**: no commentary, no explanation, no notes. One block per issue.
+**At the §5 stop, the output is the `<plan>` block.** This section applies only after §6 has
+filed.
+
+Present the complete content of each issue inside `<issue>` tags — the body exactly as it was
+filed. Put **nothing inside those tags but the issue itself**: no commentary, no explanation, no
+notes. One block per issue.
 
 After the blocks, print the run table — id, title, priority, milestone, blocked-by, link —
-followed by the recommended implementation order in one line. On a draft-only run where nothing
-was filed, the `<github_issue>` blocks are the entire final output.
+followed by the recommended implementation order in one line.
