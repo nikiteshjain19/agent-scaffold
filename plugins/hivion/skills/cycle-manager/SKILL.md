@@ -86,7 +86,7 @@ it is going.
 - **To a repairer: the review findings, verbatim.** This direction is correct and it is the point.
   Handing a review to whoever fixes it is what a review is for.
 - **To a merger: the pull-request number, the verdict verbatim, and the user's answer verbatim.**
-  Nothing else.
+  The answer names the pull request and the head commit it was given for. Nothing else.
 
 **Adding anything to C1 or C5 destroys the property silently.** Every artifact of the run still looks
 correct. A brief is the only channel into the agent it addresses, so text added "to help" is
@@ -200,12 +200,15 @@ Pull request: <N>
 An independent verdict already exists for this pull request. Do not fetch another.
 <the full C2 verdict block, unchanged>
 The user's answer, verbatim: "<the user's words, or 'not yet approved'>"
+The answer was given for: pull request <N>, head commit <SHA, or none>
 Re-read the pull request's current head commit before you act.
 Treat the verdict as void, and stop, when the current head does not equal its HEAD field.
 Return a CYCLE-MERGE-RESULT block.
 ```
 
-Frozen property: the verdict and the user's answer both travel verbatim.
+Frozen property: the verdict and the user's answer both travel verbatim. The answer names the pull
+request and the head commit it was given for, and `none` when the user gave no answer (scaffold
+D-7). The `pr-merge-loop` skill's A RELAYED ANSWER section says how the merger reads both lines.
 
 ### C6 — the merge return (merger to manager)
 
@@ -325,9 +328,10 @@ Present one digest per cycle, after every pull request in the wave has stopped.
 3. Write each entry in the shape the `pr-merge-loop` skill's `ASK BLOCK` section defines, and under
    the plain-language rule that skill states. Cite that shape rather than re-specifying it.
 4. Name the stop predicate that ended each pull request's loop, and the round number.
-5. Present the verdict's findings in plain language. A predicate number and a condition number are
+5. Name the head commit each entry describes, from its verdict's `HEAD` field.
+6. Present the verdict's findings in plain language. A predicate number and a condition number are
    citations, never explanations.
-6. Say what an unanswered entry means: the pull request stays open, and its ticket stays as it is.
+7. Say what an unanswered entry means: the pull request stays open, and its ticket stays as it is.
 
 **The queue lives in the run, and nowhere else** (`CLAUDE.md` §13). Never commit it. Never write it
 to a tracked file.
@@ -339,7 +343,8 @@ cannot reason past is one. A destructive or irreversible action is the other.
 never carries to another, and each merge needs its own go-ahead (`CLAUDE.md` §6).
 
 **Then wait for the answers.** Record each answer in the user's own words. Never paraphrase one: a
-paraphrased approval is not the approval `CLAUDE.md` §6 requires.
+paraphrased approval is not the approval `CLAUDE.md` §6 requires. Record with each answer the pull
+request and the head commit its entry named.
 
 ---
 
@@ -349,7 +354,9 @@ Run this for each pull request the digest covered.
 
 1. **Dispatch one subagent to run the `pr-merge-loop` skill against that pull request.** Send C5.
 2. **Carry the C2 verdict block unchanged**, and the user's answer verbatim. Write `not yet
-   approved` where the user has not answered.
+   approved` where the user has not answered. Name the pull request and the head commit the answer
+   was given for. Write `none` for the head commit where the user has not answered.
+   **The merger refuses an answer that is not the user's own words**, so never summarise one.
 3. **Dispatch one merger per pull request.** One answer never authorises a second pull request.
 4. **Read the returned C6 block.** Record `merged` in the cycle record.
 5. **Print the merger's own final summary and digest unchanged.** Never rewrite a question to
