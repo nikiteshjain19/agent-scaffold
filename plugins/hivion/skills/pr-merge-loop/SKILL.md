@@ -74,7 +74,8 @@ Read `PROJECT.md` at the repo root and resolve, once per run:
   - With a squash or rebase strategy and no declared exception, hold the parent and escalate it.
     Name the missing field. Never improvise a merge-commit flag.
 - **Tracker + how to call it** — which issue tracker, the scope, and the concrete calls behind
-  these **tracker verbs**: `GET_ISSUE`, `SET_STATUS`, `ADD_COMMENT`. Also resolve:
+  these **tracker verbs**: `GET_ISSUE`, `SET_STATUS`, `ADD_COMMENT`, `EDIT_ISSUE`. `EDIT_ISSUE`
+  replaces an issue's description, such as `gh issue edit <n> --body-file <file>`. Also resolve:
   - **Target state after merge** — the tracker's real state name for "merged/complete"
     (e.g. "Done"). Note: CLAUDE.md §2 says mark Done only when the PR is merged — which is
     exactly this step — but confirm the state name for THIS tracker.
@@ -95,7 +96,6 @@ merge-gate section, never from memory:
   them**. Use the command the project states for resolving a PR's changed files against the block.
   Note the change types an entry names beside its glob, such as "modified or deleted".
 - **Size threshold** — the declared line and file limits for the auto lane.
-- **Footprint enforcement** — on or off.
 - **Enforcement mechanism** — whether the host enforces the checks server-side, or whether this
   loop is the only thing honouring them.
 - **The decision log** — its location and read command come from the workflow file
@@ -222,8 +222,9 @@ the `CYCLE-MERGE-RESULT` block.
      this PR. An approved PR queues nothing, because a merged PR has no question left to ask.
 9. When this PR merged in the auto lane, print its WHAT IT DOES block first, as AUTO LANE step 19
    requires. The escalate lane's card already carries the report of its merge. After a stop, print
-   the reason for it first. Then return the block below. Then print the FINAL SUMMARY row and the
-   DIGEST for this PR, in their own shapes.
+   the reason for it first. Then return the block below. Then print the FINAL SUMMARY row, the FINAL
+   SUMMARY "Footprint widenings" block and the DIGEST for this PR, in their own shapes. The
+   `cycle-manager` skill's RUN REPORT re-prints the widening lines from that block.
 
 ```text
 CYCLE-MERGE-RESULT
@@ -586,13 +587,14 @@ Record the PR's head commit SHA before you start. The classification belongs to 
    covered (`CLAUDE.md` §6).
 2. **Green signal not green.** Read the check results (`gh pr checks <num>`). This condition fires
    on any required job that fails, is pending, is cancelled, or never reported.
-3. **Footprint stray.** Evaluate this condition only where CONFIG found footprint enforcement on.
-   Read the declared footprint from the ticket. Normalise every declared entry before you compare
-   it, under the `issue-loop` skill's rule "Normalise every declared path first", in its section
-   "The disjointness test". Without that step, a changed `PROJECT.md` matches no entry written as
-   `PROJECT.md`, "Build / lint / test commands", and reads as a stray. Name every changed file
-   outside the normalised footprint. This condition fires when enforcement is on and the ticket
-   declares no footprint.
+3. **Footprint stray.** Read the declared footprint from the ticket. Normalise every declared entry
+   before you compare it, under the `issue-loop` skill's rule "Normalise every declared path first",
+   in its section "The disjointness test". Without that step, a changed `PROJECT.md` matches no
+   entry written as `PROJECT.md`, "Build / lint / test commands", and reads as a stray. Name every
+   changed file outside the normalised footprint. A stray covered by a widening request, in the form
+   `issue-loop` §4 step 8 gives, is pending the reviewer's decision. It does not by itself send the
+   PR to the escalate lane. AUTO LANE's verdict decides. A stray with no request fires. This
+   condition also fires when the ticket declares no footprint, or a footprint entry names no path.
 4. **A test deleted, skipped or weakened.** Search the diff for removed test files, removed
    assertions and skip markers. Search it for an updated snapshot or expected-output fixture. Search
    it for a loosened threshold, tolerance or timeout. Each one fires this condition. A snapshot
@@ -709,6 +711,7 @@ MERGE-LOOP REVIEW RECORD — head <SHA> — lane: <auto | escalate>
   7 body freshness      <clear | fired> — <what you read>
 Bottom line: <one plain sentence naming what decides this merge>
 Independent verdict: <the reviewer's verdict and where its comment is, or `none — escalate lane`>
+Footprint widenings: <each path with its decision (approved, refused, needs the owner, or unrequested), or `none`>
 ```
 
 **The duplicate line reads the same source as the review card's duplicate item** (EVIDENCE item 9):
@@ -758,13 +761,14 @@ This one says what the review found. A PR can carry both, and one never substitu
    satisfies this step.**
 8. Never review the PR yourself instead. You are the merging agent, not the independent one.
 9. **POST THE REVIEW RECORD on this PR.** Run the REVIEW RECORD phase above. Merge nothing before
-   that comment posts.
+   that comment posts. Then run WIDEN THE FOOTPRINT for each approved path, before step 10.
 10. Merge this PR on `approve`: `gh pr merge <num> <MERGE strategy>` (from CONFIG). Merge a PR that
     carries an open stacked child with the stacked-parent strategy CONFIG resolved, and keep its
     branch (STACKED PAIRS).
 11. Capture the resulting merge/squash commit SHA on BASE.
 12. `SET_STATUS` on the resolved issue id → the target state from CONFIG.
-13. `ADD_COMMENT` with the PR URL and the merge commit SHA, if the comment policy is on.
+13. `ADD_COMMENT` with the PR URL and the merge commit SHA, if the comment policy is on. Then comment
+    each approved widening's bold "Footprint widened" line on the issue.
 14. Merge only, and say "no tracker update (no ticket linked)", when no issue id resolves.
 15. **SWEEP THE DEPENDENTS** of the merged ticket. Run the DEPENDENT SWEEP below.
 16. **RETARGET EVERY OPEN CHILD** of the PR you just merged. Run items 4 to 9 of STACKED PAIRS.
@@ -813,6 +817,27 @@ of them:
 
 **Escalate the PR when you cannot verify any one of them.** Absent evidence is not evidence of
 safety (`CLAUDE.md` §6).
+
+### WIDEN THE FOOTPRINT — write each approved path before the merge
+
+Run this before every merge, in both lanes. Approved paths are the `clear — widening approved` lines
+of the reviewer's condition 3. In the escalate lane they are the paths the reviewer approved, and
+the extra files the owner approved on the card. Run it even when the card shows no bold line. A PR
+can escalate for another reason, such as its size, and still carry paths the reviewer approved.
+Write nothing when no path was approved.
+
+1. Read the issue's `## Declared file footprint` section, and note its current text.
+2. Append one line per approved path, in this form:
+
+   ```markdown
+   - `<path>` — widened <YYYY-MM-DD> for PR #<n>: <why>. Approved by <the `pr-reviewer` skill, verdict on <SHA> | the owner, "<their words>">.
+   ```
+
+3. Write the lines with `EDIT_ISSUE` (CONFIG). Then read the issue back with `GET_ISSUE`, and
+   confirm every new line is in the section. When CONFIG resolved no `EDIT_ISSUE` call, the write
+   fails.
+4. **When the write fails, or a line is missing on read-back, stop and merge nothing.** The record
+   would not match the diff.
 
 ### A RELAYED VERDICT — accept the one your caller already holds
 
@@ -965,6 +990,9 @@ ASK — Shall I merge #NN?
   Blocked until you answer: #NN. Nothing merges and no ticket changes while I wait.
 ```
 
+**When the card lists extra files in bold, the merge question says so.** Add this sentence under the
+ASK block's first line: "Approving this PR also approves the extra files listed in bold above."
+
 **Recommend the option the BOTTOM LINE supports.** A bottom line saying the PR is not ready
 recommends `skip`, never `go ahead`. The two lines must never contradict each other.
 
@@ -1037,13 +1065,17 @@ to "wait" promises an action and delivers silence.
      condition 2, and ENFORCEMENT). Stop when the ticket was cancelled, descoped or superseded
      (escalation condition 7, its ticket half). Stop when no review record is posted for the
      current head (REVIEW RECORD).
-  d. Merge only this PR: `gh pr merge <num> <MERGE strategy>` (from CONFIG). Merge a PR that
-     carries an open stacked child with the stacked-parent strategy CONFIG resolved, and keep its
-     branch (STACKED PAIRS).
+  d. **Always run WIDEN THE FOOTPRINT first.** It records the paths the reviewer approved, and each
+     extra file the owner approved, with the owner's words. Run it when the card shows no bold
+     line, too. Stop and merge nothing when the write fails. Then merge only this PR:
+     `gh pr merge <num> <MERGE strategy>` (from CONFIG). Merge a PR that carries an open stacked
+     child with the stacked-parent strategy CONFIG resolved, and keep its branch (STACKED PAIRS).
   e. Capture the resulting merge/squash commit SHA on BASE.
   f. Update the tracker for the resolved issue id:
   - `SET_STATUS` → target state.
   - `ADD_COMMENT` with the PR URL and the merge commit SHA (if the comment policy is on).
+  - After the merge, `ADD_COMMENT` on the issue with each approved widening's bold "Footprint
+    widened" line.
   g. Confirm merged + ticket updated. If no ticket id was found, merge only and say
      "no tracker update (no ticket linked)".
   h. **Sweep the dependents of the merged ticket:** run the DEPENDENT SWEEP below, and report its
@@ -1287,6 +1319,13 @@ triggered.
 Then name every stacked pair the run found (STACKED PAIRS). Give the parent, the child and the
 child's base branch. Say for each child whether the run retargeted it, or what it still waits on.
 Say "the run found no stacked pair" in one sentence when it found none.
+
+**Footprint widenings.** Print every approved widening as a bold "Footprint widened" line. Or print
+the sentence "This run approved no footprint widening."
+
+```markdown
+**Footprint widened — PR #<n>, issue #<id>: `<path>` — <why>. Approved by <approver>, on head <SHA>. Revert it by reverting PR #<n>, or by asking for the file to be restored.**
+```
 
 **Close with a plain paragraph, then one ASK block if anything still waits on the user.** Write
 three sentences or fewer: what merged, what did not, and what the run needs next. Say how many

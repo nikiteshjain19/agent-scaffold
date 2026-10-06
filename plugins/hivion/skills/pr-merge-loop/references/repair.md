@@ -47,7 +47,7 @@ you touch anything.
 | Finding | Why it is not repairable |
 | --- | --- |
 | A risk-listed path (escalation condition 1) | The PR is correct. The condition asks a human to look. |
-| A footprint stray (condition 3) | Reverting it, or widening the issue, is a scope decision. |
+| A footprint stray (condition 3) | Reverting it, or widening the issue, is a scope decision. Only the independent reviewer approves a widening, and the agent that requests one never approves it (`CLAUDE.md` §6, condition 3). |
 | A test deleted, skipped or weakened (condition 4) | `CLAUDE.md` §11 rule 10 sends this to a human, always. |
 | A diff over the size threshold (condition 5) | Splitting a PR decides scope on the user's behalf. |
 | A cancelled ticket, or a contradicting decision (condition 7) | Only the user can say what the project now wants. |
@@ -77,7 +77,9 @@ on either list is not repairable. Absent evidence is not evidence of safety (`CL
 2. **Work in a scratch worktree** cut from the PR's head ref. Never repair in your own checkout.
 3. **Touch only files the issue's declared footprint already names**, plus the PR body. Stop and
    escalate when a repair needs a file outside it, and name that file. This is what stops a repair
-   manufacturing a footprint stray.
+   manufacturing a footprint stray. A repairer that needs such a file writes a widening request in the
+   PR body, in the form `issue-loop` §4 step 8 gives, then stops under this bound. It never touches
+   that file.
 4. **Run the project's whole pre-PR gate** in that worktree, from the "Build / lint / test commands"
    section of `PROJECT.md`. Read each command's exit status yourself.
 5. **Discard the repair and escalate when the gate fails.** Never push a repair you did not watch

@@ -42,8 +42,8 @@ all.
 Read `PROJECT.md` at the repo root and the decision log, and resolve:
 
 - **The merge gate** — the "Merge gate" section. Which check produces a green signal, which paths
-  are risk-listed and always need a human, the size threshold, and whether footprint enforcement is
-  on. §4 schedules against exactly these.
+  are risk-listed and always need a human, and the size threshold. §4 schedules against exactly
+  these.
 - **The lane budget** — the "Parallelism" section inside "Merge gate". Use the lane budget the
   `issue-loop` skill resolves from it, its default included. State in the plan which budget you
   used and where it came from. This skill states no number of its own.
@@ -153,8 +153,8 @@ Split the design into **units**, each one PR-sized (`issue-writer §3`: if the a
 do not fit in about six observable checks, it is too big). Then:
 
 1. **Every unit declares its expected file footprint** — the concrete paths it will create or
-   change. Best effort, stated explicitly, and it is what footprint enforcement checks the PR
-   against later. A footprint is complete only when it also names:
+   change. Best effort, stated explicitly, and it is what escalation condition 3 checks the PR
+   against later (`CLAUDE.md` §6). A footprint is complete only when it also names:
    - every document the unit makes false, by document and section (`CLAUDE.md` §5 rule 6);
    - every earlier decision file that a `Supersedes` or `Corrects` back-reference edits
      (`CLAUDE.md` §7).

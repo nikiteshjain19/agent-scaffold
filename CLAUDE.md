@@ -65,14 +65,14 @@ topic at a time, covering:
    categories, non-negotiables.
 6. **Working style** — async-first preferences, how much autonomy agents get, when to ask
    vs. decide.
-7. **Merge gate** — what makes a change safe to merge without a human reading it. Capture: the
-   exact command or check that produces a trustworthy **green signal**; which paths are
-   **high-risk** and always need a human regardless (start from the default risk list below);
-   whether the repo host **enforces** checks server-side (required status checks / branch
-   protection) or whether the gate is only honoured by whoever merges;
-   how many issues may be worked **in parallel**; and whether a PR straying outside its issue's
-   declared file footprint escalates. Record it as a Merge gate section in `PROJECT.md` — the
-   review/merge flow reads exactly this to decide what it may merge unattended.
+7. **Merge gate** — what makes a change safe to merge without a human reading it. Capture: the exact
+   command or check that produces a trustworthy **green signal**; which paths are **high-risk** and
+   always need a human regardless (start from the default risk list below); whether the repo host
+   **enforces** checks server-side (required status checks / branch protection) or whether the gate
+   is only honoured by whoever merges; how many issues may be worked **in parallel**. Never ask
+   whether a stray escalates: footprint checking is always on (§6, escalation condition 3). Record
+   it as a Merge gate section in `PROJECT.md` — the review/merge flow reads exactly this to decide
+   what it may merge unattended.
 
 **The default risk list — propose it in topic 7, in two parts.** Without a default, a project
 protects either too little or too much (scaffold D-12).
@@ -112,8 +112,9 @@ applies that qualifier (§6).
 
 **Documentation outside the risk list is an ordinary change.** A docs-only diff outside the list
 reaches the auto lane whenever no escalation condition fires. That means a green signal, an approve
-verdict, a diff inside the footprint, and a diff inside the size threshold. Nothing about a docs
-change is special, and nothing about it is exempt.
+verdict, a diff inside the footprint or inside a widening the independent reviewer approved, and a
+diff inside the size threshold. Nothing about a docs change is special, and nothing about it is
+exempt.
 
 **Classify by path, never by what the PR calls itself.** A diff described as a doc fix that edits a
 risk-listed file is a risk-listed change. Escalation condition 1 reads the diff (§6).
@@ -382,9 +383,17 @@ A PR escalates if **any** of these hold:
 2. **The green signal is not green** — any required job failing, pending, cancelled, **or not
    reported at all**. No checks reported is red, never "nothing to fail". Re-poll before concluding
    the set is empty; checks absent within a minute of a push are usually a race.
-3. **The diff strays outside the issue's declared file footprint**, where the project has footprint
-   enforcement on. Straying is usually scope creep and occasionally a mis-scoped issue; either way a
-   human should see it.
+3. **The diff strays outside the issue's declared file footprint.** This condition applies in every
+   project, and no project can switch it off. A ticket that declares no footprint fires it, and so
+   does a footprint entry that names no path. A path outside the footprint does not fire this
+   condition when the independent reviewer approved a widening for it. The reviewer approves only a
+   path the PR body requests, and that no risk-list entry matches. The path must also meet one of
+   two needs: an acceptance criterion needs it, or the change makes a document there false (§5 rule
+   6). For a document, the reviewer reads it and confirms the diff makes the quoted passage false.
+   The agent that requests a widening never approves it. In the escalation tier, the owner's
+   approval of the PR approves every extra file its review card names. That approval never overrides
+   another escalation condition or a hard stop. Straying is usually scope creep and occasionally a
+   mis-scoped issue; either way a human should see it.
 4. **A test is deleted, skipped, or weakened** (§11 rule 10). No issue's instructions override this.
    Two weakening moves are the common ones, and each fires this condition:
    - a snapshot or expected-output fixture updated so that it matches the new output;
@@ -550,7 +559,8 @@ these are true:
 - the green signal is genuinely green, confirmed by reading the check results rather than assuming
   them;
 - an **independent** reviewing agent — not the PR's author — returns approve;
-- the diff stays inside the issue's declared footprint;
+- the diff stays inside the issue's declared footprint, or each path outside it carries a widening
+  the independent reviewer approved;
 - no risk-list path is touched;
 - the PR carries no repair record **this merging agent wrote**. A record left by another agent does
   not bar this lane, and the repair block above states what the merger verifies instead.

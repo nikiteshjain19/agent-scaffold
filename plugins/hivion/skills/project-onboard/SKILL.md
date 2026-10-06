@@ -337,7 +337,7 @@ Use the section names the skills read (`CLAUDE.md` §0). A renamed section reads
 | **Product** | What the product is today, who it is for, and what ships next. |
 | **Toolchain** | The repo host, the CI, the hosting, the services, the base branch, the branch naming convention, and the merge strategy, including the stacked-parent merge-commit exception or "none". Then the tracker mapping the `issue-loop` and `pr-merge-loop` skills read: how to reach the tracker, the tracker scope, its real status names, the target state after merge, the merge-comment policy, its priority model, its id format and auto-link convention, its label vocabulary, its assignee convention, its dependency mechanism, its dependency signal, its input-needed signal, and its hold signals — including the pre-adoption signal. |
 | **Build / lint / test commands** | The commands the survey proved, and the pre-PR gate. Say which ones do not exist. |
-| **Merge gate** | Green signal and the command that reads it, risk-list paths and how they are matched, the command that resolves changed files against the risk list, size threshold, footprint enforcement, and the enforcement mechanism — what the host enforces and what is only honoured. |
+| **Merge gate** | Green signal and the command that reads it, risk-list paths and how they are matched, the command that resolves changed files against the risk list, size threshold, and the enforcement mechanism — what the host enforces and what is only honoured. |
 | **Parallelism** (inside Merge gate) | Max lanes, max cycles per run, and max repair rounds per pull request. |
 | **Milestones / build sequence** | What is in flight, and what must ship before what. |
 | **Constraints & working style** | Spend caps where the project calls a paid API (`CLAUDE.md` §10), compliance, secrets categories, and how much autonomy agents get. |
@@ -387,7 +387,6 @@ autonomy.
 | Green signal | none declared | No auto-merge tier (`CLAUDE.md` §0). |
 | Risk-list paths | `*`, then the §0 "Always risk-listed" list, then every risky path the survey found | Every pull request escalates. |
 | Size threshold | none declared | Escalation condition 5 fires on every pull request. |
-| Footprint enforcement | on | A stray escalates. |
 | Enforcement mechanism | honoured only | No claim the host enforces anything the survey did not read. |
 | Merge strategy | none declared | The merge flow stops and asks before every merge. |
 | Target state after merge | none declared | No ticket state changes. The run reports it. |

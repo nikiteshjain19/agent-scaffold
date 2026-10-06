@@ -139,7 +139,15 @@ tier only.
 
 ### Footprint enforcement
 
-**On.** A PR whose changed files stray outside its issue's declared footprint escalates to a human.
+**Always on, and not a setting.** `CLAUDE.md` §6, escalation condition 3, fixes this rule for every
+project, and no current skill reads this section. It stays so that a reader, or an older installed
+version of a skill, finds the rule here. A PR whose changed files stray outside its issue's
+declared footprint escalates to a human, unless the independent reviewer approved a widening for
+each such path. The reviewer approves a requested path only when an acceptance criterion needs it,
+or when the change makes a document there false and the reviewer has confirmed that by reading it.
+A widening on a risk-listed path still escalates, under condition 1. On an escalated PR, the
+owner's approval of the PR approves each extra file its review card names in bold. That approval
+never overrides a failing or missing check, or another hard stop.
 
 ### Enforcement mechanism — read this before trusting the gate
 
