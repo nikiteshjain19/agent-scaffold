@@ -74,7 +74,8 @@ Read `PROJECT.md` at the repo root and resolve, once per run:
   - With a squash or rebase strategy and no declared exception, hold the parent and escalate it.
     Name the missing field. Never improvise a merge-commit flag.
 - **Tracker + how to call it** — which issue tracker, the scope, and the concrete calls behind
-  these **tracker verbs**: `GET_ISSUE`, `SET_STATUS`, `ADD_COMMENT`. Also resolve:
+  these **tracker verbs**: `GET_ISSUE`, `SET_STATUS`, `ADD_COMMENT`, `EDIT_ISSUE`. `EDIT_ISSUE`
+  replaces an issue's description, such as `gh issue edit <n> --body-file <file>`. Also resolve:
   - **Target state after merge** — the tracker's real state name for "merged/complete"
     (e.g. "Done"). Note: CLAUDE.md §2 says mark Done only when the PR is merged — which is
     exactly this step — but confirm the state name for THIS tracker.
@@ -831,8 +832,9 @@ Write nothing when no path was approved.
    - `<path>` — widened <YYYY-MM-DD> for PR #<n>: <why>. Approved by <the `pr-reviewer` skill, verdict on <SHA> | the owner, "<their words>">.
    ```
 
-3. Write the lines through the tracker's issue-edit command from CONFIG. Then read the issue back,
-   and confirm every new line is in the section.
+3. Write the lines with `EDIT_ISSUE` (CONFIG). Then read the issue back with `GET_ISSUE`, and
+   confirm every new line is in the section. When CONFIG resolved no `EDIT_ISSUE` call, the write
+   fails.
 4. **When the write fails, or a line is missing on read-back, stop and merge nothing.** The record
    would not match the diff.
 
