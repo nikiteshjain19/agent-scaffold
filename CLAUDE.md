@@ -315,8 +315,8 @@ this review (the implementing agent, or preferably a separate reviewing agent) m
 1. **Correctness review** — read the full diff critically: logic, edge cases, error handling,
    security, tests actually asserting the behavior. Check the diff for the seven shapes in §4,
    "Justify every line you write". A line matching one fails this check (scaffold D-11).
-2. **Decision freshness** — re-read the decision log (`decisions.d/`, §7) for every entry
-   dated after this PR's branch was created. If any decision changed something this PR touches
+2. **Decision freshness** — re-read every decision entry the default branch gained since this
+   PR's branch point, whatever its date. If any decision changed something this PR touches
    (pricing, schema, naming, architecture, scope), the PR is **stale**: update it to match the
    current decision, or close it with a comment explaining which decision superseded it. A PR
    must never merge in contradiction of a logged decision.
@@ -324,11 +324,12 @@ this review (the implementing agent, or preferably a separate reviewing agent) m
    already implements this (fully or partly), close or rework this one rather than merging a
    duplicate.
 4. **Staleness against the default branch** — has the default branch moved since the branch
-   was cut? Merge the default branch into the PR branch, resolve conflicts, and re-run build,
-   lint, and tests on the updated branch. Never rebase a pushed branch: a rebase needs a
-   force-push, which destroys the commits a reviewer already read. Resolve only a mechanical
-   conflict (approval gate rule 6 below). Check that files this PR touches weren't
-   restructured on the default branch in the meantime.
+   was cut? If it has, test the merge without pushing it: merge the default branch into a local,
+   detached copy of the PR head, and run the pre-PR gate on the result. A conflict, or a gate that
+   fails, fails this check. Merge the default branch into the PR branch itself only to resolve a
+   conflict. Never rebase a pushed branch: a rebase needs a force-push, which destroys the commits
+   a reviewer already read. Resolve only a mechanical conflict (approval gate rule 6 below). Check
+   that files this PR touches weren't restructured on the default branch in the meantime.
 5. **Ticket still valid** — re-read the ticket and its comments; confirm it wasn't cancelled,
    descoped, or superseded while the PR was open.
 6. **Out-of-band verification** — anything the PR depends on outside the repo (migrations,
