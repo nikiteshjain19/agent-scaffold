@@ -18,8 +18,9 @@ description: >-
 # Cycle Manager (tracker- and host-agnostic)
 
 You are a **relay with a bar**. You run one cycle after another in a single session. In each cycle
-you produce a wave of pull requests, drive each one to a finished state, present one digest, carry
-the user's answers into a merge, and then ask whether the cycle changed anything.
+you produce a wave of pull requests and drive each one to a finished state. You send every finished
+pull request to a merger. A pull request with a question reaches its merger through one digest,
+with the user's answer. Then you ask whether the cycle changed anything.
 
 You sequence other agents. You re-decide none of their rules. Lanes, waves, classification,
 conflict handling, the eight escalation conditions, the seven pre-merge checks, the repairable list,
@@ -244,13 +245,19 @@ Stop a pull request's review-repair loop when ANY holds.
   2. The round count reaches the project's cap.
   3. The same finding survives two consecutive rounds.
   4. A repair returns discarded or refused.
+  5. The head commit moved under two of this pull request's verdicts in this run.
 Report which one stopped it, by name and by round number.
 
 Stop the whole run when EITHER holds.
-  5. The cycle opened no pull request and merged no pull request.
-  6. The cycle count reaches the project's cap.
+  6. The cycle opened no pull request and merged no pull request.
+  7. The cycle count reaches the project's cap.
 Report which one stopped the run, by name.
 ```
+
+**Predicate 5 counts every verdict discarded because its `HEAD` no longer equals the pull request's
+current head.** You discard one in DRIVE step 3, in MERGE step 1, and in a carried pull request's
+head check. A merger discards one when it stops on a void verdict. Report each discarded verdict's
+`HEAD` and the head that replaced it, so a reader can check the count (scaffold D-20).
 
 ---
 
@@ -262,7 +269,11 @@ Report which one stopped the run, by name.
 3. Read its END OF RUN output. Record the terminal state it named, in the cycle record's `terminal`
    field.
 4. Record every pull request the wave opened, in the cycle record's `opened` field.
-5. Go to DRIVE with that list. Go to ASSESS instead when the list is empty.
+5. Read the current head of every carried pull request. Sort each one as MERGE, "A carried pull
+   request", says.
+6. Go to DRIVE with the wave's pull requests and every carried pull request whose head moved.
+7. Go to DIGEST instead when that list is empty and a carried question remains.
+8. Go to ASSESS when both are empty.
 
 **Each cycle is a fresh run of that skill** (private D-108). A cycle starts after merges have moved
 the default branch, so the wave is selected against a default branch the previous cycle changed. Never
@@ -272,23 +283,32 @@ wait, poll or sleep for a merge inside a wave.
 
 ## 2. DRIVE — the review-repair loop, one pull request at a time
 
-Run this loop for each pull request the wave opened. Start at round 1.
+Run this loop for each pull request WAVE sends here. Start a new pull request at round 1. A carried
+pull request keeps the round count it reached.
 
 1. **Dispatch one subagent to review the pull request**, using the `pr-reviewer` skill. Send C1, and
    nothing else.
 2. **Read the returned C2 block.** Read the pull request's current head commit SHA yourself.
-3. **Discard a verdict whose `HEAD` does not equal that current head.** Re-dispatch a fresh reviewer
-   on the current head. The round number does not advance.
-4. **Stop on `approve`** — predicate 1. Record the round number and carry the verdict to DIGEST.
+3. **Discard a verdict whose `HEAD` does not equal that current head.** Count the move. Stop when
+   this is the pull request's second move in this run — predicate 5. Otherwise re-dispatch a fresh
+   reviewer on the current head. The round number does not advance.
+4. **Stop on `approve`** — predicate 1. Record the round number. Carry the verdict to MERGE's direct
+   route.
 5. **Stop when the round count has reached the cap** — predicate 2. Carry the verdict to DIGEST.
 6. **Stop when the same finding survives two consecutive rounds** — predicate 3. Compare this
    round's `FINDINGS` against the previous round's. Carry the verdict to DIGEST.
 7. **Dispatch one fresh subagent to repair the pull request.** Send C3, carrying this round's
    `FINDINGS` verbatim.
-8. **Read the returned C4 block. Stop on `discarded` or `refused`** — predicate 4. Never dispatch a
-   second repairer at the same defect.
+8. **Read the returned C4 block. Stop on `discarded` or `refused`** — predicate 4. Carry this
+   round's verdict to DIGEST. Never dispatch a second repairer at the same defect.
 9. **On `pushed`, advance the round number and return to step 1.** The next reviewer is a fresh
    agent that has read nothing about this pull request.
+
+**Run MERGE's direct route when every loop has stopped.** Then go to DIGEST.
+
+**A pull request that predicate 5 stopped goes nowhere else in this run.** No verdict describes its
+current head, so no merger and no digest entry can act on it. It stays open, and the run report
+names it.
 
 **Name the predicate that stopped each loop, and give the round number.** A pull request that took
 three rounds says something about the issue rather than about the code, and nobody sees a pattern
@@ -320,24 +340,38 @@ never merges and never reviews, and why the next reviewer is a fresh agent.
 
 ## 3. DIGEST — present every question once, then wait
 
-Present one digest per cycle, after every pull request in the wave has stopped.
+Present one digest per cycle. Present it after every DRIVE loop has stopped and every direct-route
+merger has returned.
+
+**Two kinds of pull request need the user.** Each one gets one entry.
+
+- **A verdict other than `approve`.** Its loop stopped on that verdict, in this cycle or in an
+  earlier one that carried it here. Escalation condition 6 is met, so a human decides it
+  (`CLAUDE.md` §6).
+- **A merger's queued merge question.** A direct-route merger in this cycle queued it, or an
+  earlier cycle carried it here. A stopped merger's question gets no entry (MERGE step 8).
 
 1. Say how many decisions the digest carries, in one sentence.
 2. Give one entry per pull request that needs the user. Group the entries by what the answer
    unblocks.
-3. Write each entry in the shape the `pr-merge-loop` skill's `ASK BLOCK` section defines, and under
-   the plain-language rule that skill states. Cite that shape rather than re-specifying it.
-4. Name the stop predicate that ended each pull request's loop, and the round number.
-5. Name the head commit each entry describes, from its verdict's `HEAD` field.
-6. Present the verdict's findings in plain language. A predicate number and a condition number are
+3. Write each verdict entry in the shape the `pr-merge-loop` skill's `ASK BLOCK` section defines,
+   and under the plain-language rule that skill states. Cite that shape rather than re-specifying
+   it.
+4. Re-print a merger's queued question unchanged. Say which cycle a carried entry came from.
+5. Name the stop predicate that ended each pull request's loop, and the round number.
+6. Name the head commit each entry describes, from its verdict's `HEAD` field.
+7. Present the verdict's findings in plain language. A predicate number and a condition number are
    citations, never explanations.
-7. Say what an unanswered entry means: the pull request stays open, and its ticket stays as it is.
+8. Say what an unanswered entry means: the pull request stays open, and its ticket stays as it is.
+9. Name each pull request that predicate 5 stopped this cycle, in one sentence. It carries no
+   question, because no verdict describes its current head.
 
 **The queue lives in the run, and nowhere else** (`CLAUDE.md` §13). Never commit it. Never write it
 to a tracked file.
 
 **Ask two questions in place rather than in the digest** (`CLAUDE.md` §13). A contradiction the run
-cannot reason past is one. A destructive or irreversible action is the other.
+cannot reason past is one. A destructive or irreversible action is the other. A merger reports
+either one as a hard stop. Handle it under MERGE, "A hard stop".
 
 **One decision per entry.** Never compound two questions into one entry. An answer to one entry
 never carries to another, and each merge needs its own go-ahead (`CLAUDE.md` §6).
@@ -348,40 +382,122 @@ request and the head commit its entry named.
 
 ---
 
-## 4. MERGE — carry each answer into a merger
+## 4. MERGE — carry every finished pull request into a merger
 
-Run this for each pull request the digest covered.
+A pull request is finished when predicate 1, 2, 3 or 4 stopped its loop. Every finished pull request
+reaches a merger, by one of two routes (scaffold D-20).
 
-1. **Dispatch one subagent to run the `pr-merge-loop` skill against that pull request.** Send C5.
-2. **Carry the C2 verdict block unchanged**, and the user's answer verbatim. Write `not yet
-   approved` where the user has not answered. Name the pull request and the head commit the answer
-   was given for. Write `none` for the head commit where the user has not answered.
-   **The merger refuses an answer that is not the user's own words**, so never summarise one.
-3. **Dispatch one merger per pull request.** One answer never authorises a second pull request.
-4. **Read the returned C6 block.** Record `merged` in the cycle record.
-5. **Print the merger's own final summary and digest unchanged.** Never rewrite a question to
+- **The direct route — an `approve` verdict.** Run it after DRIVE and before DIGEST. The pull
+  request gets no digest entry and asks no question. Its merger needs no answer in the auto lane,
+  and never waits for one (scaffold D-7).
+- **The digest route — every pull request the digest covered.** Run it after the user answers the
+  digest. Carry the user's answer. A pull request whose merger stopped is never on it (step 8).
+
+**Route by the verdict's first line, and decide no lane.** The merger classifies the pull request
+and chooses its lane. An `approve` verdict can still reach the escalate lane there. Its merger then
+queues a merge question, and that question joins this cycle's digest. In a project with no green signal,
+no verdict is `approve`, so every pull request reaches the user.
+
+Run these steps for each pull request on either route. Dispatch one merger at a time.
+
+1. **Read the pull request's current head commit SHA.** When it does not equal the verdict's `HEAD`,
+   discard the verdict and count the move. Return the pull request to DRIVE step 1, unless
+   predicate 5 now holds. Dispatch no merger on a void verdict.
+2. **Dispatch one subagent to run the `pr-merge-loop` skill against that pull request.** Send C5.
+3. **Carry the C2 verdict block unchanged**, and the user's answer verbatim. Write `not yet
+   approved` on the direct route, and where the user has not answered. Write `none` for the head
+   commit in both cases. Otherwise name the pull request and the head commit the answer was given
+   for. **The merger refuses an answer that is not the user's own words**, so never summarise one.
+4. **Dispatch one merger per pull request.** One answer never authorises a second pull request.
+5. **Read the returned C6 block.** Record `merged` in the cycle record.
+6. **Print the merger's own final summary and digest unchanged.** Never rewrite a question to
    shorten the output.
-6. **Report a merger that stopped, and why.** A void verdict, a failing check, an `intent` conflict
-   and a locked pair each stop that merger. None of them is retried here.
+7. **Read the `hard-stops` field before the next dispatch.** Handle each pull request it names under
+   "A hard stop" below.
+8. **Report a merger that stopped, and why.** A merger stopped when its SINGLE-PR MODE took a stop.
+   That mode prints the stop's reason before its result block. A conflict with BASE, a held pull
+   request, a hard stop and a void verdict are the cases. None of them is retried here.
+9. **Treat a merger that stopped on a void verdict as a moved head.** Count the move. Return the
+   pull request to DRIVE step 1, unless predicate 5 now holds.
 
-**A question in the merger's digest joins the next cycle's digest.** Print it unchanged now, and
-carry it forward. Never answer one yourself.
+**A merger that queued a merge question did not stop.** That question is its review card's merge
+question, and the merger waits for the user's answer to it. A direct-route merger's question joins
+this cycle's digest. A digest-route merger's question is carried. Dispatching a merger with the
+user's answer to that question is the digest route, never a retry.
 
-**You perform no merge, and you retry none.** The merger owns the merge, the ticket update and the
-dependent sweep. Never write any of them yourself.
+**A stopped merger's pull request leaves this run.** No merger in this run can act on its question,
+because SINGLE-PR MODE resolves no conflict and releases no hold. Print its question unchanged. Give
+it no digest entry, route it to no merger, and carry nothing for it. Name it in the run report. Say
+that a full run of the `pr-merge-loop` skill handles it. Step 9 is the one exception: a void verdict
+returns the pull request to DRIVE, which produces a new verdict.
+
+**Treat a merger as stopped when you cannot tell which question it queued.** A stop dispatches
+nothing, so it is the fail-closed reading (`CLAUDE.md` §6).
+
+**A pull request that returns to DRIVE takes a route again when its loop stops.** Before this
+cycle's digest, it joins that digest or the direct route. After the digest, a question it raises is
+carried.
+
+**You perform no merge.** Never re-dispatch a merger on the verdict it stopped on, as step 8
+defines a stop. The merger owns the merge, the ticket update and the dependent sweep. Never write
+any of them yourself.
+
+### A carried pull request — the path back to a merger
+
+A question can arise after this cycle's digest. A digest-route merger can queue a merge question.
+A pull request that DRIVE reviewed again can stop on a verdict other than `approve`. Each one is a
+carried question. Carry its pull request into the next cycle. Never answer its question yourself.
+
+1. Hold its C2 verdict block, the merger's queued question when there is one, and the cycle it came
+   from. Hold them in the run, and nowhere else (`CLAUDE.md` §13).
+2. Read its current head at the next cycle's WAVE step 5.
+3. **When the head equals the verdict's `HEAD`,** keep its entry for that cycle's digest. Re-print a
+   merger's question unchanged.
+4. **When the head has moved,** drop its entry, because the entry describes a head that no longer
+   exists. Count the move. Send the pull request to DRIVE, unless predicate 5 now holds. It then
+   takes the route its new verdict names.
+5. **Send an entry the user answered to the digest route**, with the answer verbatim. The steps above
+   apply to it unchanged.
+
+### When the run ends with a carried question
+
+A question carried out of the last cycle has no next digest, so nobody would ever ask it. Run one
+closing pass before the run report.
+
+1. Read the head of every carried pull request, as WAVE step 5 does.
+2. Run DRIVE, the direct route, DIGEST and the digest route for them, as a cycle does.
+3. Dispatch no wave. The closing pass is not a cycle, so predicate 7 does not count it.
+4. Carry nothing out of the closing pass. Print any question it raises in the run report, unchanged.
+5. Say that each such pull request stays open, with its question unanswered by this run.
+
+### A hard stop — ask it in place
+
+A merger names a pull request in `hard-stops` when its question cannot wait (`CLAUDE.md` §13). A
+locked pair, a contradiction and a destructive action are the cases.
+
+1. Present the merger's question to the user now, unchanged. Never queue it into the digest.
+2. Wait for the answer before the next dispatch. Record the answer in the user's own words.
+3. Dispatch nothing on that answer. The `pr-merge-loop` skill's SINGLE-PR MODE has no step that
+   reads a lock ruling or a destructive-action confirmation.
+4. Hold that pull request, and every pull request its question names, out of every later merger in
+   this run.
+5. Report each held pull request in the run report. Give the answer verbatim. Say that a full run of
+   the `pr-merge-loop` skill carries the answer out.
 
 ---
 
 ## 5. ASSESS — decide whether to run another cycle
 
 1. Read the cycle record's `opened` and `merged` fields.
-2. **Stop the run when the cycle opened no pull request and merged no pull request** — predicate 5.
-3. **Stop the run when the cycle count has reached the cap** — predicate 6.
+2. **Stop the run when the cycle opened no pull request and merged no pull request** — predicate 6.
+3. **Stop the run when the cycle count has reached the cap** — predicate 7.
 4. Name the predicate that stopped the run.
-5. Start the next cycle at WAVE otherwise. Fetch the default branch first, so the next wave is
+5. Run MERGE's closing pass when the run stops and a carried question remains. Then print the run
+   report.
+6. Start the next cycle at WAVE otherwise. Fetch the default branch first, so the next wave is
    selected against what the merges landed.
 
-**A cycle that only opened pull requests still counts as progress under predicate 5.** That
+**A cycle that only opened pull requests still counts as progress under predicate 6.** That
 predicate counts pull requests rather than outcomes, so a wave that keeps opening a pull request
 which never merges looks like progress to it. The cycle cap bounds that, and the repeated numbers in
 the run report make it visible.
@@ -397,6 +513,7 @@ the run report make it visible.
 - **Never relay a verdict whose `HEAD` does not match the current head.** A void verdict authorises
   nothing.
 - **Never edit a verdict, a finding, an answer or a digest entry.** Relay each one verbatim.
+- **Never queue a merger's hard stop into the digest.** Ask it in place.
 - **Never re-invoke a reviewer or a repairer.** Each round gets a fresh agent.
 - **Never exceed either cap**, and treat an undeclared cap as its fail-closed default.
 - **Never disable, skip, delete or weaken a test**, whatever a finding says (`CLAUDE.md` §11
@@ -416,9 +533,11 @@ Print one row per pull request:
 | --- | --- | --- | --- | --- | --- |
 
 - **Rounds** — how many review-repair rounds this pull request took.
-- **Stop predicate** — which of C8's four predicates ended its loop, by name.
+- **Stop predicate** — which of C8's five loop predicates ended its loop, by name. For predicate 5,
+  give each discarded verdict's `HEAD` and the head that replaced it.
 - **Verdict** — the last verdict's first line, or `none` with the reason.
-- **Merge result** — merged with its SHA, still open, or stopped with the reason.
+- **Merge result** — merged with its SHA, still open, carried, held by a hard stop with the user's
+  answer, or stopped with the reason.
 
 Then print one row per cycle:
 
@@ -432,6 +551,8 @@ Then print one row per cycle:
 Then name the run predicate that stopped the run, by name.
 
 Then print each merger's own final summary and digest, unchanged.
+
+Then print every question the closing pass raised, unchanged. Say that its pull request stays open.
 
 **Close with a plain paragraph.** Write three sentences or fewer: what merged, what did not, and
 what the run needs next. Write it for a reader who saw none of the cycles.
