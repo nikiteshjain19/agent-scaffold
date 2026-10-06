@@ -228,43 +228,56 @@ Independence is a property of the state you test, not only of who you are. An au
 tree can hold uncommitted files, stale build output, or a test that passes only there. Cut your
 own tree from the branch as the host has it.
 
-**The check environment — every command in this phase uses it, and so does §4 check 4's run on
+**The check environment — every command from step 2 on uses it, and so does §4 check 4's run on
 the merged tree.** The pull request's own code runs here. The host CLI that holds your credentials
-can merge, so a buggy or hostile pull request could merge itself or push. Replace `<command>` with
-the command:
+can merge, so a buggy or hostile pull request could merge itself or push. Step 1 runs in the
+ordinary shell instead, because it runs no code from the pull request. Run steps 2, 3 and 5 in one
+session, and check 4's merge and gate run too when BASE moved. §2 step 8 tells you whether BASE
+moved. Replace the placeholders with the commands:
 
 ```sh
 GHCFG="$(mktemp -d)"
 env -u GH_TOKEN -u GITHUB_TOKEN -u GH_ENTERPRISE_TOKEN -u SSH_AUTH_SOCK \
   GH_CONFIG_DIR="$GHCFG" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_TERMINAL_PROMPT=0 \
-  sh -c '<command>'
+  sh -s <<'CHECKS'
+WT="$(mktemp -d "${TMPDIR:-/tmp}/wt-review-<n>.XXXXXX")"
+git worktree add "$WT" --detach <SHA>
+cd "$WT"
+<the pre-PR gate from PROJECT.md, or record "none">
+echo "gate: $?"
+# Only when BASE moved (§4 check 4):
+git merge --no-commit --no-ff origin/<BASE>
+echo "merge: $?"
+<the pre-PR gate again, on the merged tree>
+echo "gate-merged: $?"
+cd /
+git worktree remove --force "$WT"
+echo "remove: $?"
+CHECKS
 ```
 
-Run every command in this environment. It removes the host CLI's token and its stored login, git's
-credential helpers, and the SSH agent. For a host CLI other than `gh`, remove that CLI's token and
-stored login the same way.
+Run every command from step 2 on in this environment. It unsets the host CLI's token variables. It
+hides the host CLI's stored login: the empty `GH_CONFIG_DIR` points `gh` away from its default
+configuration directory and its keyring entry, and both stay on disk. It removes git's credential
+helpers (an empty global config, no system config) and the SSH agent. For a host CLI other than
+`gh`, hide that CLI's stored login the same way.
 
 - Removing `GH_TOKEN` alone is not enough. `gh` can keep its token in the system keyring, and the
   empty `GH_CONFIG_DIR` hides it.
 - A command that cannot run in the check environment cannot run in this environment. Step 6 then
   applies: return `escalate`, and name the command.
 
-1. Fetch first: `git fetch origin`.
-2. Create the worktree at a unique path, at the SHA from §0 step 1. Record the path:
-
-   ```sh
-   WT="$(mktemp -d -t wt-review-<n>)"
-   git worktree add "$WT" --detach <SHA>
-   ```
-
+1. Fetch first: `git fetch origin`. Run it in the ordinary shell, not in the check environment. Return
+   `escalate` if it fails, and name the command. §0 step 3 already fetches with the same credentials,
+   so this exposes nothing new.
+2. Create the worktree at a unique path, at the SHA from §0 step 1. The session block above creates
+   it. Record the path.
 3. Run the pre-PR gate that `PROJECT.md` declares in its "Build / lint / test commands" section.
    Skip a command declared `none`, and record it as declared none.
-4. Read each command's exit status. Never infer a pass from quiet output.
-5. Remove the worktree after §4 check 4 has run in it, whether the checks passed or failed:
-
-   ```sh
-   git worktree remove --force "$WT"
-   ```
+4. Read each command's exit status. The session prints them as `gate:`, `merge:`, `gate-merged:` and
+   `remove:`. Never infer a pass from quiet output.
+5. Remove the worktree after §4 check 4 has run in it, whether the checks passed or failed. The
+   session block removes it last.
 
    - Pass `--force`. The tree is detached at a pushed SHA and holds nobody's work. §4 check 4
      leaves an uncommitted merge in it, so a plain `git worktree remove` refuses.
@@ -302,7 +315,8 @@ one. All seven apply to every pull request, in either tier.
 4. **Staleness against BASE** — check whether BASE moved since the branch point. If it moved,
    test the merge after §3's run on the head. Never push it.
    - In the detached worktree from §3, in the check environment, run
-     `git merge --no-commit --no-ff origin/<BASE>`.
+     `git merge --no-commit --no-ff origin/<BASE>`. This run happens inside §3's one session, before
+     step 5 removes the worktree.
    - A conflict fails check 4, and the verdict escalates.
    - Otherwise, run the pre-PR gate on the merged tree. Check 4 passes only if that run passes.
    - Report both runs on the `LOCAL CHECK RUN` line.
@@ -512,8 +526,10 @@ withholds every file-editing tool, so this skill cannot change the repository. I
 because the host CLI needs it — and that same CLI merges. The ban above is therefore honoured by
 the reviewer, not enforced by its tools. That is the same limitation `PROJECT.md` records for the
 merge gate itself. A reviewer that merges has broken a rule, not found a loophole. §3's check
-environment removes the credentials the host CLI and git would use, but it is not a sandbox. The
-checks can still read every file the user can read.
+environment hides the credentials the host CLI and git would use, but it is not a sandbox. The
+residual reach: `gh`'s default configuration directory and its keyring entry stay on disk, and code
+under test that resets `GH_CONFIG_DIR`, or reads those files directly, can still reach the host
+login. The checks can still read every file the user can read.
 
 ## QUALITY BAR — reject your own verdict
 
