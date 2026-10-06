@@ -348,8 +348,8 @@ merger has returned.
 - **A verdict other than `approve`.** Its loop stopped on that verdict, in this cycle or in an
   earlier one that carried it here. Escalation condition 6 is met, so a human decides it
   (`CLAUDE.md` §6).
-- **A merger's queued question.** A direct-route merger in this cycle queued it, or an earlier cycle
-  carried it here.
+- **A merger's queued merge question.** A direct-route merger in this cycle queued it, or an
+  earlier cycle carried it here. A stopped merger's question gets no entry (MERGE step 8).
 
 1. Say how many decisions the digest carries, in one sentence.
 2. Give one entry per pull request that needs the user. Group the entries by what the answer
@@ -391,11 +391,11 @@ reaches a merger, by one of two routes (scaffold D-20).
   request gets no digest entry and asks no question. Its merger needs no answer in the auto lane,
   and never waits for one (scaffold D-7).
 - **The digest route — every pull request the digest covered.** Run it after the user answers the
-  digest. Carry the user's answer.
+  digest. Carry the user's answer. A pull request whose merger stopped is never on it (step 8).
 
 **Route by the verdict's first line, and decide no lane.** The merger classifies the pull request
 and chooses its lane. An `approve` verdict can still reach the escalate lane there. Its merger then
-queues a question, and that question joins this cycle's digest. In a project with no green signal,
+queues a merge question, and that question joins this cycle's digest. In a project with no green signal,
 no verdict is `approve`, so every pull request reaches the user.
 
 Run these steps for each pull request on either route. Dispatch one merger at a time.
@@ -414,23 +414,39 @@ Run these steps for each pull request on either route. Dispatch one merger at a 
    shorten the output.
 7. **Read the `hard-stops` field before the next dispatch.** Handle each pull request it names under
    "A hard stop" below.
-8. **Report a merger that stopped, and why.** A failing check, an `intent` conflict and a locked pair
-   each stop that merger. None of them is retried here.
+8. **Report a merger that stopped, and why.** A merger stopped when its SINGLE-PR MODE took a stop.
+   That mode prints the stop's reason before its result block. A conflict with BASE, a held pull
+   request, a hard stop and a void verdict are the cases. None of them is retried here.
 9. **Treat a merger that stopped on a void verdict as a moved head.** Count the move. Return the
    pull request to DRIVE step 1, unless predicate 5 now holds.
+
+**A merger that queued a merge question did not stop.** That question is its review card's merge
+question, and the merger waits for the user's answer to it. A direct-route merger's question joins
+this cycle's digest. A digest-route merger's question is carried. Dispatching a merger with the
+user's answer to that question is the digest route, never a retry.
+
+**A stopped merger's pull request leaves this run.** No merger in this run can act on its question,
+because SINGLE-PR MODE resolves no conflict and releases no hold. Print its question unchanged. Give
+it no digest entry, route it to no merger, and carry nothing for it. Name it in the run report. Say
+that a full run of the `pr-merge-loop` skill handles it. Step 9 is the one exception: a void verdict
+returns the pull request to DRIVE, which produces a new verdict.
+
+**Treat a merger as stopped when you cannot tell which question it queued.** A stop dispatches
+nothing, so it is the fail-closed reading (`CLAUDE.md` §6).
 
 **A pull request that returns to DRIVE takes a route again when its loop stops.** Before this
 cycle's digest, it joins that digest or the direct route. After the digest, a question it raises is
 carried.
 
-**You perform no merge.** Never re-dispatch a merger on the verdict it stopped on. The merger owns
-the merge, the ticket update and the dependent sweep. Never write any of them yourself.
+**You perform no merge.** Never re-dispatch a merger on the verdict it stopped on, as step 8
+defines a stop. The merger owns the merge, the ticket update and the dependent sweep. Never write
+any of them yourself.
 
 ### A carried pull request — the path back to a merger
 
-A question can arise after this cycle's digest. A digest-route merger can queue one. A pull request
-that DRIVE reviewed again can stop on a verdict other than `approve`. Each one is a carried
-question. Carry its pull request into the next cycle. Never answer its question yourself.
+A question can arise after this cycle's digest. A digest-route merger can queue a merge question.
+A pull request that DRIVE reviewed again can stop on a verdict other than `approve`. Each one is a
+carried question. Carry its pull request into the next cycle. Never answer its question yourself.
 
 1. Hold its C2 verdict block, the merger's queued question when there is one, and the cycle it came
    from. Hold them in the run, and nowhere else (`CLAUDE.md` §13).
