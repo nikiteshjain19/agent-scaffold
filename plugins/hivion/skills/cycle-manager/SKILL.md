@@ -341,6 +341,10 @@ pull request keeps the round count it reached.
 3. **Discard a verdict whose `HEAD` does not equal that current head.** Count the move. Stop when
    this is the pull request's second move in this run — predicate 5. Otherwise re-dispatch a fresh
    reviewer on the current head. The round number does not advance.
+
+   **A reviewer that returns no C2 block** gets one fresh reviewer on the current head, with the
+   round number unchanged. A second missing block applies the hard rule "Same error twice → stop and
+   report." See RUN-ORDER QUESTIONS.
 4. **Stop on `approve`** — predicate 1. Record the round number. Carry the verdict to MERGE's direct
    route.
 5. **Stop when the count of completed repairs has reached the cap** — predicate 2. A completed
@@ -365,7 +369,8 @@ pull request keeps the round count it reached.
    verdict to DIGEST. That stop finishes the pull request exactly as predicates 2 to 4 do. Name it
    `no repairable finding`, with the round number, wherever this skill names a stop predicate.
 8. **Read the returned C4 block. Stop on `discarded`, `refused` or `escalated`** — predicate 4.
-   Carry this round's verdict to DIGEST. Never dispatch a second repairer at the same defect.
+   Carry this round's verdict to DIGEST. Never dispatch a second repairer at the same defect. A
+   repairer that returns no C4 block is routed under RUN-ORDER QUESTIONS, not here.
 9. **On `pushed`, advance the round number and return to step 1.** The next reviewer is a fresh
    agent that has read nothing about this pull request.
 
@@ -400,6 +405,59 @@ the one an agent reads.
 
 **A repair makes its repairer the branch's author** (private D-157). That is why the repairer
 never merges and never reviews, and why the next reviewer is a fresh agent.
+
+---
+
+## RUN-ORDER QUESTIONS — the manager answers only the order the run works in
+
+**The predicate.** The manager may answer a question when every option changes only which agent
+it dispatches next, or only when it dispatches that agent. It may not answer a question whose
+answer allows a merge, a write, a scope change or a cap change.
+
+**The tie-break.** A question the manager cannot classify goes to the user. Say that the question
+was not classified. Absent evidence is not evidence of safety.
+
+**Why this keeps THE BAR.** Answering writes nothing. Every write still happens inside a dispatched
+subagent.
+
+**Merge order.** Dispatch mergers in this order:
+
+1. A stacked parent before its child, as the `pr-merge-loop` skill's STACKED PAIRS defines it.
+2. The smaller diff first. Read each size from the host: additions plus deletions, from
+   `gh pr view <n> --json additions,deletions`.
+3. The lower pull-request number.
+
+A wrong order can only stop a merger. Each merger re-reads the head commit, as C5 requires.
+
+**A reviewer that returns no C2 block** gets one fresh reviewer, as DRIVE step 3 states. That
+changes only which agent runs next.
+
+**A repairer or merger that returns no block is not re-dispatched.** It may have written before it
+failed. So a re-dispatch is more than a choice of what runs next. Route it by the merged rules
+(scaffold D-20):
+
+- **A merger that returns no C6 block is a stopped merger.** MERGE says "Treat a merger as stopped
+  when you cannot tell which question it queued." Give it no digest entry and no re-dispatch. Name
+  it in the run report.
+- **A repairer that returns no C4 block stops the loop**, as predicate 4 does. Read the pull
+  request's current head. Compare it with the head the C3 brief named.
+  - When the head did not move, carry this round's verdict to DIGEST, as DRIVE step 8 does.
+  - When the head moved, the verdict is void. Give it no digest entry, and dispatch no merger on it.
+    The pull request goes nowhere else in this run, as a predicate 5 stop does. Name it in the run
+    report with both heads. HARD RULES: "Never relay a verdict whose `HEAD` does not match the
+    current head."
+
+**What never qualifies.** The manager never answers these questions:
+
+- a merge approval;
+- an `intent` conflict;
+- a locked pair;
+- a destructive action;
+- an ambiguous issue instruction;
+- a cap.
+
+**Record each answer.** Put each answer the manager gives in the run report's "Decided for you"
+table (RUN REPORT).
 
 ---
 
@@ -502,7 +560,8 @@ Run these steps for each pull request on either route. Dispatch one merger at a 
    approved` on the direct route, and where the user has not answered. Write `none` for the head
    commit in both cases. Otherwise name the pull request and the head commit the answer was given
    for. **The merger refuses an answer that is not the user's own words**, so never summarise one.
-4. **Dispatch one merger per pull request.** One answer never authorises a second pull request.
+4. **Dispatch one merger per pull request, in the order RUN-ORDER QUESTIONS gives.** One answer never
+   authorises a second pull request.
 5. **Read the returned C6 block.** Record `merged` in the cycle record.
 6. **Print the merger's own final summary and digest unchanged.** Never rewrite a question to
    shorten the output.
@@ -540,7 +599,8 @@ any of them yourself.
 
 A question can arise after this cycle's digest. A digest-route merger can queue a merge question.
 A pull request that DRIVE reviewed again can stop on a verdict other than `approve`. Each one is a
-carried question. Carry its pull request into the next cycle. Never answer its question yourself.
+carried question. Carry its pull request into the next cycle. Never answer a question about one
+pull request yourself. A run-order question goes to RUN-ORDER QUESTIONS.
 
 1. Hold its C2 verdict block, the merger's queued question when there is one, and the cycle it came
    from. Hold them in the run, and nowhere else (`CLAUDE.md` §13).
@@ -613,6 +673,8 @@ the run report make it visible.
 - **Never queue a merger's hard stop into the digest.** Ask it in place.
 - **Never re-invoke a reviewer or a repairer.** Each round gets a fresh agent.
 - **Never exceed either cap**, and treat an undeclared cap as its fail-closed default.
+- **Never answer a question whose answer allows a merge, a write, a scope change or a cap change.**
+  RUN-ORDER QUESTIONS sets the predicate.
 - **Never disable, skip, delete or weaken a test**, whatever a finding says (`CLAUDE.md` §11
   rule 10).
 - **Never merge to resolve uncertainty, and never repair to resolve it either.** Report and stop.
@@ -645,6 +707,9 @@ Then print one row per cycle:
 - **Opened** — the pull requests that cycle's wave opened, or `none`.
 - **Merged** — the pull requests that cycle's merges landed, or `none`.
 - **Terminal state** — the state the `issue-loop` skill reported for that cycle, in its own words.
+
+Then print a table titled "Decided for you", with the columns `Cycle | Question | Decision | Why`.
+Print one row per run-order question the manager answered. Print `none` when it answered none.
 
 Then name the run predicate that stopped the run, by name.
 

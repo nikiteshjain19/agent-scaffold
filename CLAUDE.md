@@ -812,7 +812,8 @@ language that skill requires. Cite that shape. Never re-specify it here.
 
 Queue every question whose answer affects one item alone. Such a question never blocks the run.
 Ask a question about the run itself in place — the order the run works in, above all — because no
-single item carries it.
+single item carries it. A skill may answer one itself when every option only changes which agent
+runs next. The `cycle-manager` skill is the one that does.
 
 **The queue lives in the run, and nowhere else.** Never commit it. Never write it to a tracked
 file. A committed queue outlives the run that built it, and the copy left behind is the one that
