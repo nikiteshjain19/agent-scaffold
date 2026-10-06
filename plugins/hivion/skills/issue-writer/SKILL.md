@@ -174,6 +174,10 @@ that path, these rules replace the ordinary ones:
   into waves — treat it as the design of record. Carry its wave, footprint, and contracts into
   each issue you draft (§4). Do not re-derive the design, and do not re-order the waves. Raise any
   mismatch with the user instead of correcting the plan yourself.
+  - Read the plan's `Status` line. Treat only a plan whose status reads approved as the design of
+    record. Raise a draft plan with the user instead of filing from it.
+  - When the user or the request names a plan whose file is not on the default branch, stop and
+    ask. Never treat it as "no plan".
 - **No plan file is not an error.** Draft from Tracks A–D as usual. Mark each issue's Wave "none".
   The declared file footprint is still required (§4). With no plan there is no frozen text to
   quote, so the batch freezes its own shared surfaces:
