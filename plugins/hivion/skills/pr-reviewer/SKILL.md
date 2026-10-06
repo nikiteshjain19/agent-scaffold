@@ -240,17 +240,18 @@ GHCFG="$(mktemp -d)"
 env -u GH_TOKEN -u GITHUB_TOKEN -u GH_ENTERPRISE_TOKEN -u SSH_AUTH_SOCK \
   GH_CONFIG_DIR="$GHCFG" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_TERMINAL_PROMPT=0 \
   sh -s <<'CHECKS'
+REPO="$PWD"
 WT="$(mktemp -d "${TMPDIR:-/tmp}/wt-review-<n>.XXXXXX")"
 git worktree add "$WT" --detach <SHA>
 cd "$WT"
 <the pre-PR gate from PROJECT.md, or record "none">
 echo "gate: $?"
-# Only when BASE moved (§4 check 4):
+# Only when BASE moved (§4 check 4). When BASE did not move, leave out the two merge lines and the gate after them:
 git merge --no-commit --no-ff origin/<BASE>
 echo "merge: $?"
 <the pre-PR gate again, on the merged tree>
 echo "gate-merged: $?"
-cd /
+cd "$REPO"
 git worktree remove --force "$WT"
 echo "remove: $?"
 CHECKS
