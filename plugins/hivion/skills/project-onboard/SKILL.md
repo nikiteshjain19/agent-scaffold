@@ -179,7 +179,7 @@ Establish each fact below. Record the command beside the result.
    env -u GH_TOKEN -u GITHUB_TOKEN -u GH_ENTERPRISE_TOKEN -u SSH_AUTH_SOCK \
      GH_CONFIG_DIR="$GHCFG" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_TERMINAL_PROMPT=0 \
      sh -s <<'CHECKS'
-   <the test command>
+   <the test command> </dev/null
    echo "test: $?"
    CHECKS
    ```
@@ -188,7 +188,7 @@ Establish each fact below. Record the command beside the result.
    host CLI's stored login: the empty `GH_CONFIG_DIR` points `gh` away from its default
    configuration directory and its keyring entry, and both stay on disk. It removes git's credential
    helpers (an empty global config, no system config) and the SSH agent. For a host CLI other than
-   `gh`, hide that CLI's stored login the same way.
+   `gh`, hide that CLI's token and stored login the same way.
 3. **What CI runs.** Read every pipeline definition. Record each job, the events that trigger it,
    and what it actually executes. Read the recent run history on the default branch. Count the
    failures, and the failures that passed on a re-run.

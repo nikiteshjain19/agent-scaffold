@@ -328,7 +328,7 @@ the decision log), treat the discrepancy as a finding.
    env -u GH_TOKEN -u GITHUB_TOKEN -u GH_ENTERPRISE_TOKEN -u SSH_AUTH_SOCK \
      GH_CONFIG_DIR="$GHCFG" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_TERMINAL_PROMPT=0 \
      sh -s <<'CHECKS'
-   <the test command>
+   <the test command> </dev/null
    echo "test: $?"
    CHECKS
    ```
@@ -337,7 +337,7 @@ the decision log), treat the discrepancy as a finding.
    > host CLI's stored login: the empty `GH_CONFIG_DIR` points `gh` away from its default
    > configuration directory and its keyring entry, and both stay on disk. It removes git's
    > credential helpers (an empty global config, no system config) and the SSH agent. For a host CLI
-   > other than `gh`, hide that CLI's stored login the same way.
+   > other than `gh`, hide that CLI's token and stored login the same way.
 
    When the suite does not run, mark all test assessment as static.
 

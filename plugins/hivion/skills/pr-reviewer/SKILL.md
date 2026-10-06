@@ -242,14 +242,15 @@ env -u GH_TOKEN -u GITHUB_TOKEN -u GH_ENTERPRISE_TOKEN -u SSH_AUTH_SOCK \
   sh -s <<'CHECKS'
 REPO="$PWD"
 WT="$(mktemp -d "${TMPDIR:-/tmp}/wt-review-<n>.XXXXXX")"
+echo "worktree: $WT"
 git worktree add "$WT" --detach <SHA>
 cd "$WT"
-<the pre-PR gate from PROJECT.md, or record "none">
+<the pre-PR gate from PROJECT.md, or record "none"> </dev/null
 echo "gate: $?"
-# Only when BASE moved (§4 check 4). When BASE did not move, leave out the two merge lines and the gate after them:
-git merge --no-commit --no-ff origin/<BASE>
+# Only when BASE moved (§4 check 4). When BASE did not move, delete the four lines from git merge to echo "gate-merged: $?".
+git merge --no-commit --no-ff origin/<BASE> </dev/null
 echo "merge: $?"
-<the pre-PR gate again, on the merged tree>
+<the pre-PR gate again, on the merged tree> </dev/null
 echo "gate-merged: $?"
 cd "$REPO"
 git worktree remove --force "$WT"
@@ -261,7 +262,9 @@ Run every command from step 2 on in this environment. It unsets the host CLI's t
 hides the host CLI's stored login: the empty `GH_CONFIG_DIR` points `gh` away from its default
 configuration directory and its keyring entry, and both stay on disk. It removes git's credential
 helpers (an empty global config, no system config) and the SSH agent. For a host CLI other than
-`gh`, hide that CLI's stored login the same way.
+`gh`, hide that CLI's token and stored login the same way. Never run one check command in a separate
+shell of its own. Every check command runs in the one session, and `</dev/null` keeps each one from
+reading the session's script.
 
 - Removing `GH_TOKEN` alone is not enough. `gh` can keep its token in the system keyring, and the
   empty `GH_CONFIG_DIR` hides it.
