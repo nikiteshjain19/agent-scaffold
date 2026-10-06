@@ -326,7 +326,8 @@ Every lane runs these steps for its own issue. The coordinator dispatches the la
 
    - Never edit the issue's footprint yourself.
 
-   Say "this issue declared no footprint" in the PR body when it declared none.
+   Straying is information the reviewer acts on (`CLAUDE.md` §6). Say "this issue declared no
+   footprint" in the PR body when it declared none.
 9. Commit `<type>: <summary> (<issue-id>)` — the form `CLAUDE.md` §3 defines. Push, and open a PR
    that links the issue via the tracker's mechanism. Title the PR `<issue-id>: <summary>`. Put
    these in the body:

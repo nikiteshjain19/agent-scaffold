@@ -591,9 +591,8 @@ Record the PR's head commit SHA before you start. The classification belongs to 
    entry written as `PROJECT.md`, "Build / lint / test commands", and reads as a stray. Name every
    changed file outside the normalised footprint. A stray covered by a widening request, in the form
    `issue-loop` §4 step 8 gives, is pending the reviewer's decision. It does not by itself send the
-   PR to the escalate
-   lane. AUTO LANE's verdict decides. A stray with no request fires. This condition also fires when
-   the ticket declares no footprint, or a footprint entry names no path.
+   PR to the escalate lane. AUTO LANE's verdict decides. A stray with no request fires. This
+   condition also fires when the ticket declares no footprint, or a footprint entry names no path.
 4. **A test deleted, skipped or weakened.** Search the diff for removed test files, removed
    assertions and skip markers. Search it for an updated snapshot or expected-output fixture. Search
    it for a loosened threshold, tolerance or timeout. Each one fires this condition. A snapshot
@@ -819,10 +818,11 @@ safety (`CLAUDE.md` §6).
 
 ### WIDEN THE FOOTPRINT — write each approved path before the merge
 
-Run this in both lanes, before the merge. Approved paths are the `clear — widening approved` lines
+Run this before every merge, in both lanes. Approved paths are the `clear — widening approved` lines
 of the reviewer's condition 3. In the escalate lane they are the paths the reviewer approved, and
-the extra files the owner
-approved on the card.
+the extra files the owner approved on the card. Run it even when the card shows no bold line. A PR
+can escalate for another reason, such as its size, and still carry paths the reviewer approved.
+Write nothing when no path was approved.
 
 1. Read the issue's `## Declared file footprint` section, and note its current text.
 2. Append one line per approved path, in this form:
@@ -1062,8 +1062,9 @@ to "wait" promises an action and delivers silence.
      condition 2, and ENFORCEMENT). Stop when the ticket was cancelled, descoped or superseded
      (escalation condition 7, its ticket half). Stop when no review record is posted for the
      current head (REVIEW RECORD).
-  **If the owner approved extra files,** run WIDEN THE FOOTPRINT with the owner's words, after the
-  guards above and before the merge. Stop and merge nothing when the write fails.
+  **Always run WIDEN THE FOOTPRINT,** after the guards above and before the merge. It records the
+  paths the reviewer approved, and each extra file the owner approved, with the owner's words. Run
+  it when the card shows no bold line, too. Stop and merge nothing when the write fails.
   d. Merge only this PR: `gh pr merge <num> <MERGE strategy>` (from CONFIG). Merge a PR that
      carries an open stacked child with the stacked-parent strategy CONFIG resolved, and keep its
      branch (STACKED PAIRS).
@@ -1318,8 +1319,7 @@ child's base branch. Say for each child whether the run retargeted it, or what i
 Say "the run found no stacked pair" in one sentence when it found none.
 
 **Footprint widenings.** Print every approved widening as a bold "Footprint widened" line. Or print
-the sentence
-"This run approved no footprint widening."
+the sentence "This run approved no footprint widening."
 
 ```markdown
 **Footprint widened — PR #<n>, issue #<id>: `<path>` — <why>. Approved by <approver>, on head <SHA>. Revert it by reverting PR #<n>, or by asking for the file to be restored.**

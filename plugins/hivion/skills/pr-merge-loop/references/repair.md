@@ -47,7 +47,7 @@ you touch anything.
 | Finding | Why it is not repairable |
 | --- | --- |
 | A risk-listed path (escalation condition 1) | The PR is correct. The condition asks a human to look. |
-| A footprint stray (condition 3) | Reverting it, or widening the issue, is a scope decision. Only the independent reviewer approves a widening (K10). |
+| A footprint stray (condition 3) | Reverting it, or widening the issue, is a scope decision. Only the independent reviewer approves a widening, and the agent that requests one never approves it (`CLAUDE.md` §6, condition 3). |
 | A test deleted, skipped or weakened (condition 4) | `CLAUDE.md` §11 rule 10 sends this to a human, always. |
 | A diff over the size threshold (condition 5) | Splitting a PR decides scope on the user's behalf. |
 | A cancelled ticket, or a contradicting decision (condition 7) | Only the user can say what the project now wants. |

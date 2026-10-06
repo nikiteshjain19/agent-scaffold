@@ -113,8 +113,8 @@ applies that qualifier (§6).
 **Documentation outside the risk list is an ordinary change.** A docs-only diff outside the list
 reaches the auto lane whenever no escalation condition fires. That means a green signal, an approve
 verdict, a diff inside the footprint or inside a widening the independent reviewer approved, and a
-diff inside the size threshold. Nothing about a docs
-change is special, and nothing about it is exempt.
+diff inside the size threshold. Nothing about a docs change is special, and nothing about it is
+exempt.
 
 **Classify by path, never by what the PR calls itself.** A diff described as a doc fix that edits a
 risk-listed file is a risk-listed change. Escalation condition 1 reads the diff (§6).

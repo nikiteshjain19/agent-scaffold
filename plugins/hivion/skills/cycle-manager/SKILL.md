@@ -721,8 +721,7 @@ Then print each merger's own final summary and digest, unchanged.
 Then print every question the closing pass raised, unchanged. Say that its pull request stays open.
 
 **Footprint widenings.** Print this bold section. Re-print every bold "Footprint widened" line the
-mergers reported, in
-this form:
+mergers reported, in this form:
 
 ```markdown
 **Footprint widened — PR #<n>, issue #<id>: `<path>` — <why>. Approved by <approver>, on head <SHA>. Revert it by reverting PR #<n>, or by asking for the file to be restored.**

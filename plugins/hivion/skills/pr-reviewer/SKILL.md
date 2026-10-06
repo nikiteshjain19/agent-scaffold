@@ -8,9 +8,8 @@ description: >-
   escalation conditions from CLAUDE.md §6, and escalates whenever a condition cannot be
   evaluated. It posts one verdict comment. It merges nothing, pushes nothing, and edits no file.
   Tool-agnostic: the repo host, green signal, risk-list paths, size threshold and tracker are read
-  from PROJECT.md, not hard-coded. Use when a merge flow needs an
-  independent verdict before the auto-merge tier, or the user says "review PR #N", "is this safe
-  to merge", or similar.
+  from PROJECT.md, not hard-coded. Use when a merge flow needs an independent verdict before the
+  auto-merge tier, or the user says "review PR #N", "is this safe to merge", or similar.
 allowed-tools: Read, Grep, Glob, Bash, TodoWrite
 ---
 
@@ -497,7 +496,8 @@ FINDINGS
   ESCALATION CONDITIONS (CLAUDE.md §6):
     1 risk-list path      <fired | clear> — <the files, or none>
     2 green signal        <fired | clear> — <job names and their states>
-    3 footprint stray     <fired | clear> — <the stray files, or the declared footprint>
+    3 footprint stray     <fired | clear> — <the declared footprint, or `no declared footprint`>
+                            <one §5 condition-3 reason line per path outside the footprint, or none>
     4 test weakened       <fired | clear> — <the diff hunk, or none>
     5 size threshold      <fired | clear> — <additions + deletions, files, vs the threshold>
     6 reviewer verdict    <independent | not independent> — <the INDEPENDENCE evidence>
@@ -516,6 +516,9 @@ scaffold D-5). Write each one exactly as shown. Rename none, reorder none, and a
 - **`FINDINGS`** stands alone on its line. The block is every indented line beneath it, down to the
   `ADVISORY` line. A caller passes that block to a repairer verbatim. Put only the checks, the
   conditions, the local check run and the reason in it.
+- **Condition 3 gives each path outside the footprint its own line,** below the condition's verdict.
+  Write each line in a §5 condition-3 form. The condition reads `fired` when any line fires. The
+  `pr-merge-loop` skill reads the `clear — widening approved` lines from here.
 - **`ADVISORY`** stays outside `FINDINGS`. A note is never a finding (§6), so it never reaches a
   repairer.
 
