@@ -172,18 +172,23 @@ Establish each fact below. Record the command beside the result.
       the error. Never retry it outside that environment.
 
    The credential-free environment binds the test run in rule 3, and no other survey command.
-   Replace `<command>` with the test command:
+   Replace `<the test command>` with the test command:
 
    ```sh
    GHCFG="$(mktemp -d)"
    env -u GH_TOKEN -u GITHUB_TOKEN -u GH_ENTERPRISE_TOKEN -u SSH_AUTH_SOCK \
      GH_CONFIG_DIR="$GHCFG" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_TERMINAL_PROMPT=0 \
-     sh -c '<command>'
+     sh -s <<'CHECKS'
+   { <the test command>; } </dev/null
+   echo "test: $?"
+   CHECKS
    ```
 
-   Run every command in this environment. It removes the host CLI's token and its stored login,
-   git's credential helpers, and the SSH agent. For a host CLI other than `gh`, remove that CLI's
-   token and stored login the same way.
+   Run every command in this environment. It unsets the host CLI's token variables. It hides the
+   host CLI's stored login: the empty `GH_CONFIG_DIR` points `gh` away from its default
+   configuration directory and its keyring entry, and both stay on disk. It removes git's credential
+   helpers (an empty global config, no system config) and the SSH agent. For a host CLI other than
+   `gh`, hide that CLI's token and stored login the same way.
 3. **What CI runs.** Read every pipeline definition. Record each job, the events that trigger it,
    and what it actually executes. Read the recent run history on the default branch. Count the
    failures, and the failures that passed on a re-run.
