@@ -6,10 +6,11 @@ description: >-
   independence first and refuses to review a pull request it authored. Re-runs the checks in
   a clean worktree cut from the branch, evaluates the seven pre-merge checks and the eight
   escalation conditions from CLAUDE.md §6, and escalates whenever a condition cannot be
-  evaluated. It merges nothing, pushes nothing, and edits no file. Tool-agnostic: the repo
-  host, green signal, risk-list paths, size threshold, footprint policy and tracker are read
-  from PROJECT.md, not hard-coded. Use when a merge flow needs an independent verdict before
-  the auto-merge tier, or the user says "review PR #N", "is this safe to merge", or similar.
+  evaluated. It posts one verdict comment. It merges nothing, pushes nothing, and edits no file.
+  Tool-agnostic: the repo host, green signal, risk-list paths, size threshold, footprint policy
+  and tracker are read from PROJECT.md, not hard-coded. Use when a merge flow needs an
+  independent verdict before the auto-merge tier, or the user says "review PR #N", "is this safe
+  to merge", or similar.
 allowed-tools: Read, Grep, Glob, Bash, TodoWrite
 ---
 
@@ -52,11 +53,24 @@ Run this phase before you read the diff. A reviewer who is not independent has n
 
 1. Record the pull request's head commit SHA: `gh pr view <n> --json headRefOid`. Read it from the
    host. Never take it from the invocation.
-2. Name the pull request's author: `gh pr view <n> --json author,headRefName`.
-3. Fetch first: `git fetch origin`. Then name every commit author on the branch:
-   `git log origin/<BASE>..<SHA> --format='%an <%ae>'`, with the SHA from step 1.
-4. Ask yourself the question directly. Did you write any commit on this branch?
-5. Include earlier sessions in that answer. A branch you wrote yesterday is still yours.
+2. Name the pull request's author, and read its base from the host:
+   `gh pr view <n> --json author,headRefName,baseRefName`. BASE is `baseRefName`. Read it here,
+   before any step uses BASE.
+   - Compare BASE with the base branch `PROJECT.md` declares.
+   - A base that is another open pull request's head branch makes this pull request a stacked
+     child. List those head branches with `gh pr list --state open --json headRefName`.
+   - Use a stacked child's own base as BASE for every diff range in this skill.
+   - Return `escalate` on any other mismatch. Name both branches. Stop here.
+3. Fetch first: `git fetch origin`. Then fetch the pull request's head explicitly, so that a
+   fork's head resolves: `git fetch origin pull/<n>/head`. Then name every commit author on the
+   branch: `git log origin/<BASE>..<SHA> --format='%an <%ae>'`, with the SHA from step 1.
+   Return `escalate` if a fetch or the log fails. Say that you could not read the authors. Stop
+   here.
+4. Ask yourself the question directly. Does this session's context hold any commit you wrote on
+   this branch?
+5. Answer from this session's context. The fresh dispatch covers earlier sessions: a freshly
+   dispatched agent holds no earlier session, so an earlier session's reasoning cannot reach it.
+   An inline invocation has no such cover, and the invocation rule below handles it.
 6. Return `escalate` if the answer is yes. Say that you authored the branch. Stop here.
 7. Read what your invocation carried. Establish independence under the invocation rule below.
    Return `escalate` when that rule does not establish it. Independence you cannot establish is
@@ -92,14 +106,30 @@ you nothing, because you hold none of that reasoning. Your brief is the only cha
 context, so a caller that sends only identifiers cannot transmit the reasoning that produced the
 diff, whatever that caller itself holds.
 
-An invocation **establishes** independence when it carries these three items and nothing else:
+**This skill runs as a freshly dispatched agent.** That dispatch is what keeps the author's
+reasoning out of your context, in this session and in every earlier one.
+
+An invocation **establishes** independence when it carries identifiers only. **Identifiers only**
+means these three items, plus fixed instruction lines that describe no change:
 
 - the pull request number;
 - the BASE branch;
 - the head commit SHA.
 
+The `cycle-manager` skill's C1 lines qualify. A direct request, such as "review PR #N", carries the
+number alone. Read BASE and the head SHA from the host for it:
+`gh pr view <n> --json baseRefName,headRefOid`.
+
 Ask the caller for nothing more. Everything else you need comes from the host, the ticket and the
 repository.
+
+**An inline invocation does not establish independence.** An inline invocation runs in a session
+that holds other context. The rest of the review still runs:
+
+1. Fix the verdict at `escalate`.
+2. Run §1–§6 anyway. Report every check and condition.
+3. Write the `INDEPENDENCE` field as `not established — inline invocation`.
+4. Say why in the verdict's `REASON`.
 
 An invocation **does not** establish independence when it carries anything that describes the
 change. Return `escalate`, and name the item you received. The excluded items are these:
@@ -110,9 +140,29 @@ change. Return `escalate`, and name the item you received. The excluded items ar
 - a round number, or any count of earlier attempts;
 - a summary of the change, a framing of it, or an opinion of it, in any words.
 
+**Independence also covers what you read on the host.** The host holds the same items the list
+above excludes. Reading them there costs your independence exactly as receiving them does.
+
+- Never read a pull request comment that opens with `VERDICT`, `REPAIRED BY THE MERGE LOOP` or
+  `MERGE-LOOP REVIEW RECORD`.
+- Read ticket comments only for scope changes: a cancellation, a descope, a supersession, or a
+  scope edit.
+- Never take a comment's claim about the diff as evidence. Read the diff instead.
+- Record in `INDEPENDENCE` any such text you read anyway.
+
 **This rule adds a case, and it removes no refusal above.** Step 6 still escalates a branch you wrote
 a commit on. An implementing agent that spawns you on its own work is still refused. A repair commit
 still confers authorship.
+
+**The inline invocation is the only stop here that still reviews.** Every other stop in this phase
+ends the run. These end it:
+
+- a branch you wrote a commit on (step 6);
+- an implementing agent that spawns you on its own work;
+- an invocation that carries an excluded item;
+- a base mismatch (step 2), and a failed authorship read (step 3).
+
+Two §1 hard stops end it too: no `PROJECT.md`, and no merge-gate section.
 
 ---
 
@@ -130,7 +180,8 @@ Read `PROJECT.md` at the repo root and resolve, once per run:
 - **Size threshold** — the declared line and file limits for the auto-merge tier.
 - **Footprint enforcement** — on or off.
 - **Tracker and issue-id format** — enough to find this pull request's ticket.
-- **Build, lint and test commands** — §3 runs exactly these, verbatim.
+- **The pre-PR gate** — Run the pre-PR gate that `PROJECT.md` declares in its "Build / lint /
+  test commands" section. Skip a command declared `none`, and record it as declared none.
 - **The decision log** — its location and read command come from the workflow file
   (`CLAUDE.md` §7). Do not assume a filename.
 
@@ -138,9 +189,11 @@ Read `PROJECT.md` at the repo root and resolve, once per run:
 
 - **No `PROJECT.md`** — there is no merge gate to review against, so there is nothing to verify.
 - **No merge-gate section** — the same, and naming the missing section is the whole finding.
-- **No green signal declared** — `CLAUDE.md` §0 states the rule: no green signal, no auto-merge
-  tier. Do not evaluate the remaining conditions. Approving here would grant a tier that the
-  project has not earned.
+
+**No green signal declared fixes the verdict, and the review still runs.** `CLAUDE.md` §0 states
+the rule: no green signal, no auto-merge tier. Fix the verdict at `escalate`, and run §2–§6
+anyway. Report every check and condition. Approving here would grant a tier that the project has
+not earned.
 
 **An undeclared size threshold does not stop the run.** It fires escalation condition 5 in §5, and
 you report that condition as fired. Report it as fired rather than as absent.
@@ -153,11 +206,18 @@ you report that condition as fired. Report it as fired rather than as absent.
 2. List the changed files: `gh pr view <n> --json files,additions,deletions,changedFiles`.
 3. Read the pull request body. Note every out-of-band step it declares. Body freshness in §4
    compares this text against the diff, so read it as a description, not only as a checklist.
-4. Read the linked ticket and every comment on it. A comment supersedes the description.
+4. Read the linked ticket. Read its comments only for scope changes, as §0 limits them. A scope
+   change in a comment supersedes the description.
 5. Copy the ticket's declared file footprint verbatim. §5 compares the diff against this text.
-6. Read the decision log end to end, using the location and read command from §1.
+6. Read the decision log from `origin/<BASE>`, using the location and read command from §1.
 7. Find the branch point: `git merge-base origin/<BASE> <SHA>`, with the SHA from §0 step 1.
-8. Read that commit's date. Decision freshness in §4 needs it.
+8. List the decision entries BASE gained since the branch point. Decision freshness in §4 reads
+   this list:
+
+   ```sh
+   git diff --name-only --diff-filter=AMD "$(git merge-base origin/<BASE> <SHA>)" origin/<BASE> -- decisions.d/
+   ```
+
 9. Read the check results: `gh pr checks <n>`. Read them; never assume them.
 
 ---
@@ -168,12 +228,49 @@ Independence is a property of the state you test, not only of who you are. An au
 tree can hold uncommitted files, stale build output, or a test that passes only there. Cut your
 own tree from the branch as the host has it.
 
+**The check environment — every command in this phase uses it, and so does §4 check 4's run on
+the merged tree.** The pull request's own code runs here. The host CLI that holds your credentials
+can merge, so a buggy or hostile pull request could merge itself or push. Replace `<command>` with
+the command:
+
+```sh
+GHCFG="$(mktemp -d)"
+env -u GH_TOKEN -u GITHUB_TOKEN -u GH_ENTERPRISE_TOKEN -u SSH_AUTH_SOCK \
+  GH_CONFIG_DIR="$GHCFG" GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 GIT_TERMINAL_PROMPT=0 \
+  sh -c '<command>'
+```
+
+Run every command in this environment. It removes the host CLI's token and its stored login, git's
+credential helpers, and the SSH agent. For a host CLI other than `gh`, remove that CLI's token and
+stored login the same way.
+
+- Removing `GH_TOKEN` alone is not enough. `gh` can keep its token in the system keyring, and the
+  empty `GH_CONFIG_DIR` hides it.
+- A command that cannot run in the check environment cannot run in this environment. Step 6 then
+  applies: return `escalate`, and name the command.
+
 1. Fetch first: `git fetch origin`.
-2. Create the worktree at the SHA from §0 step 1:
-   `git worktree add ../wt-review-<n> --detach <SHA>`.
-3. Run the project's build, lint and test commands there, exactly as §1 resolved them.
+2. Create the worktree at a unique path, at the SHA from §0 step 1. Record the path:
+
+   ```sh
+   WT="$(mktemp -d -t wt-review-<n>)"
+   git worktree add "$WT" --detach <SHA>
+   ```
+
+3. Run the pre-PR gate that `PROJECT.md` declares in its "Build / lint / test commands" section.
+   Skip a command declared `none`, and record it as declared none.
 4. Read each command's exit status. Never infer a pass from quiet output.
-5. Remove the worktree when you finish: `git worktree remove ../wt-review-<n>`.
+5. Remove the worktree after §4 check 4 has run in it, whether the checks passed or failed:
+
+   ```sh
+   git worktree remove --force "$WT"
+   ```
+
+   - Pass `--force`. The tree is detached at a pushed SHA and holds nobody's work. §4 check 4
+     leaves an uncommitted merge in it, so a plain `git worktree remove` refuses.
+   - This differs from the `issue-loop` skill's "Never pass `--force`" on purpose. That rule
+     protects a lane's work, and this tree holds none.
+   - Put a failed removal on the `LOCAL CHECK RUN` line, with its path. It changes no verdict.
 6. Return `escalate` if a command cannot run in this environment. Name the command.
 7. Mark that verdict test-unverified (`CLAUDE.md` §11 rule 11). Never report green you did not see.
 
@@ -194,18 +291,34 @@ one. All seven apply to every pull request, in either tier.
 1. **Correctness** — read the diff critically. Judge the logic, the edge cases, the error
    handling, the security, and whether the tests assert the behaviour they claim. Then check the
    diff for a line that cannot justify its existence, below.
-2. **Decision freshness** — re-read every decision entry dated after the branch point from §2.
-   Name any entry that touches what this pull request changes. A pull request that contradicts a
-   logged decision is stale, and it must never merge.
-3. **Duplicate check** — scan the open pull requests and the recently merged work for overlap.
-   Name the other pull request if one exists.
-4. **Staleness against BASE** — check whether BASE moved since the branch point. Check whether
-   the files this pull request touches were restructured there in the meantime.
-5. **Ticket still valid** — re-read the ticket and its comments. Confirm that nobody cancelled,
-   descoped or superseded it while the pull request was open.
+2. **Decision freshness** — re-read every decision entry §2 step 8 listed, whatever its date.
+   Read each listed entry from `origin/<BASE>`. Judge an entry this pull request itself adds under
+   check 1, never under check 2. Name any entry that touches what this pull request changes. A
+   pull request that contradicts a logged decision is stale, and it must never merge.
+3. **Duplicate check** — scan for overlap: the open pull requests, plus the commits BASE gained
+   since the branch point. List those commits with
+   `git log --oneline "$(git merge-base origin/<BASE> <SHA>)..origin/<BASE>"`. Name the other pull
+   request or the commit if one overlaps.
+4. **Staleness against BASE** — check whether BASE moved since the branch point. If it moved,
+   test the merge after §3's run on the head. Never push it.
+   - In the detached worktree from §3, in the check environment, run
+     `git merge --no-commit --no-ff origin/<BASE>`.
+   - A conflict fails check 4, and the verdict escalates.
+   - Otherwise, run the pre-PR gate on the merged tree. Check 4 passes only if that run passes.
+   - Report both runs on the `LOCAL CHECK RUN` line.
+
+   Check whether the files this pull request touches were restructured on BASE in the meantime.
+5. **Ticket still valid** — re-read the ticket. Read its comments only for scope changes, as §0
+   limits them. Confirm that nobody cancelled, descoped or superseded it while the pull request was
+   open. Never take a comment's claim about the diff as evidence.
 6. **Out-of-band verification** — list what this pull request needs outside the repository.
-   Confirm each item is applied already, or is declared in the pull request body as a
-   pre-merge step.
+   - Pass only when the pull request needs nothing outside the repository.
+   - Record an item the body declares as `unevaluable`. You cannot confirm a live system, and
+     nothing in the auto lane performs the step.
+   - Record an item the body does not declare as `fail`.
+
+   This is the fail-closed reading of `CLAUDE.md` §6 pre-merge check 6, for an agent with no
+   access to the live system.
 7. **Body freshness** — read the pull request body from §2 against the diff you read there.
    Confirm the body describes what this pull request would land now. Name any sentence the
    current diff no longer supports. A body describing a superseded version of the change is
@@ -242,7 +355,8 @@ feels. Report every condition with its evidence, fired or clear — a verdict th
 fired ones hides which ones you skipped.
 
 1. **Risk-list path.** Match every changed file against the risk-list globs from §1. Name each
-   file that matches. A fully green signal does not clear this condition.
+   file that matches. A fully green signal does not clear this condition. A project that names no
+   matcher makes this condition unevaluable, so it fires.
    Where a matching entry names change types, read each file's change type:
    `git diff --name-status --no-renames origin/<BASE>...<SHA>`. That form lists a rename as a
    deletion and an addition. A file whose change type the entry does not name clears this entry.
@@ -261,8 +375,8 @@ fired ones hides which ones you skipped.
 5. **Size threshold.** Read the numbers from the host:
    `gh pr view <n> --json additions,deletions,changedFiles`. Compare them against the declared
    threshold. An undeclared threshold fires this condition by default.
-6. **The reviewing agent's verdict.** You are that agent. This condition fires whenever §0 fails,
-   and whenever you return anything other than approve.
+6. **The reviewing agent's verdict.** You are that agent. Report whether §0 established
+   independence. The `VERDICT` field is this condition's outcome, so this line never repeats it.
 7. **A stale record: the ticket, the pull request body, or a newer decision.** Carry checks 2, 5
    and 7 of §4 forward into this condition. It fires on a body that contradicts its own diff, as
    surely as on a superseded ticket. Never report a stale body as an advisory note.
@@ -285,7 +399,8 @@ The house style guide (`STYLE.md`) is guidance, and nothing enforces it (private
 the only feedback loop it can have, so note a breach — and never grade one.
 
 - Note a style breach as an observation, with the file and the line.
-- Report any other small finding the same way: a naming nit, a stale comment, a thin test name.
+- Report any other small finding the same way: a naming nit, a thin test name. A comment the diff
+  adds or changes that its code contradicts fails check 1, as a correctness defect.
 - Never note a line that matches a check 1 shape. It fails check 1 instead (scaffold D-11).
 - Keep every note out of the verdict's reasoning.
 - Never let a note fire a condition. Never let a note turn approve into escalate.
@@ -298,19 +413,28 @@ that ruling is a decision (`CLAUDE.md` §7), not something a review may do in pa
 
 ## 7. RETURN THE VERDICT
 
-Return exactly one of three verdicts. Put it on the first line, alone.
+Return exactly one of three verdicts. The block's first line is the `VERDICT` field. Write nothing
+above it.
 
 - **`approve`** — all seven pre-merge checks pass, no escalation condition fired, and §0 established
   independence. A caller may read this as condition 6 satisfied. It authorises nothing else.
 - **`escalate`** — a human decides this pull request. This is the default outcome, and it is what
   every unevaluable condition resolves to.
-- **`reject`** — this pull request should not merge in its present form at all.
+- **`reject`** — this pull request carries a check-1 defect the diff can repair, as `CLAUDE.md` §6
+  defines repairable.
 
 **`escalate` and `reject` answer different questions.** `escalate` is about who decides. `reject`
-is about the change itself: it contradicts a logged decision, it weakens a test, it duplicates
-merged work, its ticket was cancelled, or it carries a line that cannot justify its existence
-(check 1). Both block the auto-merge tier identically. Use `reject` when the next action is fixing
-the pull request rather than reading it.
+is about a defect a repair can fix: a correctness defect, or a line that cannot justify its
+existence (check 1). Both block the auto-merge tier identically. Use `reject` when the next action
+is fixing the pull request rather than reading it.
+
+Return `escalate`, never `reject`, for every other finding that blocks the merge. These are not
+repairable defects:
+
+- a test deleted, skipped or weakened (condition 4);
+- a stale record, or a contradicted decision (condition 7);
+- a duplicate of another pull request or of merged work (check 3);
+- a cancelled, descoped or superseded ticket (check 5).
 
 Return the verdict in this shape:
 
@@ -334,10 +458,10 @@ FINDINGS
     3 footprint stray     <fired | clear> — <the stray files, or the declared footprint>
     4 test weakened       <fired | clear> — <the diff hunk, or none>
     5 size threshold      <fired | clear> — <additions + deletions, files, vs the threshold>
-    6 reviewer verdict    <fired | clear> — <independence, and this verdict>
+    6 reviewer verdict    <independent | not independent> — <the INDEPENDENCE evidence>
     7 stale record        <fired | clear> — <the stale ticket, body sentence, or decision id>
     8 irreversible effect <fired | clear> — <the hunk and the effect a revert cannot undo, or none>
-  LOCAL CHECK RUN: <command> → <exit status>, in <worktree path>
+  LOCAL CHECK RUN: head <command> → <exit status>; merged with origin/<BASE> <conflict | command → exit status | BASE has not moved>; in <worktree path>; removal <removed | failed — the path>
   REASON: <two plain-English sentences a human can act on>
 ADVISORY      <notes, never blocking, or none>
 ```
@@ -358,8 +482,12 @@ your invocation carried, so write `identifiers only`, or name the descriptive it
 
 Then do two things, and nothing else:
 
-1. Post the verdict as a single comment on the pull request. `CLAUDE.md` §6 requires that record.
+1. Post the verdict as a single comment on the pull request.
 2. Return the same verdict to the caller.
+
+**Every verdict posts, an early `escalate` from §0 or §1 included.** The comment is the
+independent verdict that the `CLAUDE.md` §6 review record cites. It is never that record itself.
+The `pr-merge-loop` skill's `MERGE-LOOP REVIEW RECORD` is the §6 review record.
 
 ---
 
@@ -383,7 +511,9 @@ Then do two things, and nothing else:
 withholds every file-editing tool, so this skill cannot change the repository. It keeps the shell,
 because the host CLI needs it — and that same CLI merges. The ban above is therefore honoured by
 the reviewer, not enforced by its tools. That is the same limitation `PROJECT.md` records for the
-merge gate itself. A reviewer that merges has broken a rule, not found a loophole.
+merge gate itself. A reviewer that merges has broken a rule, not found a loophole. §3's check
+environment removes the credentials the host CLI and git would use, but it is not a sandbox. The
+checks can still read every file the user can read.
 
 ## QUALITY BAR — reject your own verdict
 
