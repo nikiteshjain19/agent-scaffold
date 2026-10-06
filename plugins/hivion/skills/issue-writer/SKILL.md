@@ -169,15 +169,22 @@ that path, these rules replace the ordinary ones:
   it in the research brief and repeat it in the plan's callouts (§5, item 7). An unanswered
   question and a checked "none" look identical in a draft, and only one of them is research.
 - **Read the plan file `docs/plans/<slug>.md` when this feature has one.** `feature-plan` (private D-19)
-  writes it there under a slug named for the feature. List that directory before you conclude no
-  plan exists. The plan already chose the design, froze the contracts, and scheduled the units
-  into waves — treat it as the design of record. Carry its wave, footprint, and contracts into
-  each issue you draft (§4). Do not re-derive the design, and do not re-order the waves. Raise any
-  mismatch with the user instead of correcting the plan yourself.
+  writes it there under a slug named for the feature. List `docs/plans/` in the working tree and on
+  the default branch before you conclude no plan exists. The plan already chose the design, froze
+  the contracts, and scheduled the units into waves — treat it as the design of record. Carry its
+  wave, footprint, and contracts into each issue you draft (§4). Do not re-derive the design, and do
+  not re-order the waves. Raise any mismatch with the user instead of correcting the plan yourself.
   - Read the plan's `Status` line. Treat only a plan whose status reads approved as the design of
     record. Raise a draft plan with the user instead of filing from it.
-  - When the user or the request names a plan whose file is not on the default branch, stop and
-    ask. Never treat it as "no plan".
+  - Look for the plan file in the working tree and on the default branch. Stop and ask only when
+    the user or the request names a plan that neither holds. Never treat it as "no plan".
+  - Treat an approved plan file in the working tree as the hand-off from the `feature-plan` skill.
+    Draft from it on the plan path, exactly as from a committed plan.
+  - In the "Commit this plan" unit's `## Instructions`, quote the whole approved plan file verbatim,
+    `Status` line included. Fence the quote with a fence longer than any fence inside the plan, so
+    the quote ends where the plan ends. Tell the lane to write `docs/plans/<slug>.md` from that
+    quote, byte for byte, and never from a working tree. When the plan does not fit in one issue
+    body under the tracker's limit, stop and ask. Never shorten it.
 - **No plan file is not an error.** Draft from Tracks A–D as usual. Mark each issue's Wave "none".
   The declared file footprint is still required (§4). With no plan there is no frozen text to
   quote, so the batch freezes its own shared surfaces:
