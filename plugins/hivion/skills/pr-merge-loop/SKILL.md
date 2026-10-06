@@ -252,7 +252,16 @@ stop in step 1 writes `none` in `merged`, `still-open` and `hard-stops`, and 0 i
    number and by branch name. Work the pairs under STACKED PAIRS below.
 
    **Also keep every open PR whose base is neither BASE nor another open PR's head branch.**
-   Classify it as an orphaned child, and send it to STACKED PAIRS item 4.
+   Run `git fetch origin` first. Classify such a PR as an orphaned child only when both hold:
+   - its base branch is gone from origin, or that branch's tip is an ancestor of BASE:
+     `git merge-base --is-ancestor origin/<base> origin/<BASE>`;
+   - a merged PR had that base branch as its head:
+     `gh pr list --state merged --head <base> --json number`.
+
+   Send an orphaned child to STACKED PAIRS item 4. **Never retarget any other PR on a base that
+   is not BASE.** Its base may be a live branch it targets on purpose, such as a release branch.
+   Stop the loop for that PR, and report it with its base branch named. A test you cannot run
+   counts as not holding, so that PR stops too.
 
    **Run this pass at every queue size, and treat a missing pass as a stacked child you did not
    find.** Step 1 alone reports a clean sweep over a queue that still holds an invisible PR.

@@ -27,7 +27,8 @@ the PRs. This loop reads PRs before it reads tickets, so a ticket relation resol
    of BASE, so the child's diff stays its own changes alone.
 4. **Retarget every child of that parent immediately after the parent merges.** Move the child's
    base to BASE: `gh pr edit <num> --base <BASE>`. Read the result of that call. Retarget an
-   orphaned child that SETUP step 2 found the same way.
+   orphaned child that SETUP step 2 classified the same way. Never retarget a PR that SETUP step 2
+   stopped: its base may be a live branch it targets on purpose.
 5. **Never rebase a child, and never force-push one.** A retarget changes the PR's base, and it
    changes no commit. Item 3 is what makes that enough, so a stacked child needs no rebase and
    the no-force-push rule (private D-77) stands untouched.
