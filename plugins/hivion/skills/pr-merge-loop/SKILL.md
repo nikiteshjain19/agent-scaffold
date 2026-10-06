@@ -1062,12 +1062,11 @@ to "wait" promises an action and delivers silence.
      condition 2, and ENFORCEMENT). Stop when the ticket was cancelled, descoped or superseded
      (escalation condition 7, its ticket half). Stop when no review record is posted for the
      current head (REVIEW RECORD).
-  **Always run WIDEN THE FOOTPRINT,** after the guards above and before the merge. It records the
-  paths the reviewer approved, and each extra file the owner approved, with the owner's words. Run
-  it when the card shows no bold line, too. Stop and merge nothing when the write fails.
-  d. Merge only this PR: `gh pr merge <num> <MERGE strategy>` (from CONFIG). Merge a PR that
-     carries an open stacked child with the stacked-parent strategy CONFIG resolved, and keep its
-     branch (STACKED PAIRS).
+  d. **Always run WIDEN THE FOOTPRINT first.** It records the paths the reviewer approved, and each
+     extra file the owner approved, with the owner's words. Run it when the card shows no bold
+     line, too. Stop and merge nothing when the write fails. Then merge only this PR:
+     `gh pr merge <num> <MERGE strategy>` (from CONFIG). Merge a PR that carries an open stacked
+     child with the stacked-parent strategy CONFIG resolved, and keep its branch (STACKED PAIRS).
   e. Capture the resulting merge/squash commit SHA on BASE.
   f. Update the tracker for the resolved issue id:
   - `SET_STATUS` → target state.

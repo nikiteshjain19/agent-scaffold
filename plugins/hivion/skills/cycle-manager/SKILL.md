@@ -137,9 +137,9 @@ Read `PROJECT.md`'s "Parallelism" section once per run, and resolve two numbers:
 State both resolved numbers, and where you read each one, before the first cycle.
 
 Resolve everything else from the skill that owns it. The tracker and the lane budget come from the
-`issue-loop` skill's own configuration phase. The merge gate, the green signal,
-the risk list and the size threshold come from the `pr-merge-loop` skill's. Read none of them
-yourself, and pass none of them down.
+`issue-loop` skill's own configuration phase. The merge gate, the green signal, the risk list and
+the size threshold come from the `pr-merge-loop` skill's. Read none of them yourself, and pass none
+of them down.
 
 ---
 
