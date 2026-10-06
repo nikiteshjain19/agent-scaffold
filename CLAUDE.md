@@ -427,10 +427,11 @@ under all of these:
    the merging agent the PR's author.** The user ratified that on 2026-07-31 (private D-77). The
    exemption covers that resolution commit and nothing else. Escalate the PR whenever you cannot
    tell your resolution commit apart from other work you wrote on that branch. An independent
-   reviewer must still return a fresh approve on the resolved head SHA. **A repair commit pushed
-   under the repair block below is not covered by that exemption, and it does make you the author**
-   (private D-157). The two commits are deliberately treated differently: a mechanical resolution
-   carries no intent of yours, and a repair is work you wrote.
+   reviewer must still return a fresh verdict on the resolved head SHA. In the auto tier, that
+   verdict must be approve. **A repair commit pushed under the repair block below is not covered by
+   that exemption, and it does make you the author** (private D-157). The two commits are
+   deliberately treated differently: a mechanical resolution carries no intent of yours, and a
+   repair is work you wrote.
 3. **Approval follows a presented review, and a question the user can answer.** Before asking,
    present a plain-language summary of what the PR changes and the outcome of the seven pre-merge
    checks above. **Plain language governs every finding, not only the summary.** A condition
