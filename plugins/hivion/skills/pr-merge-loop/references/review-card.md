@@ -20,7 +20,8 @@ merge.
    the condition number after the sentence, never instead of it.
 4. **The footprint widenings.** Name every requested widening and the reviewer's decision on it.
    Print one bold line for each extra file the reviewer did not approve, in this form. A request is
-   undecided when no reviewer ran, or the verdict gives no condition-3 line for its path:
+   undecided when no reviewer ran, or the verdict gives no condition-3 line for its path. A
+   risk-listed path always takes the "Extra file that needs you" line, even when no reviewer ran:
 
    ```markdown
    **Unexplained extra file — `<path>`: the PR body gives no reason for changing it. Approving this PR approves the file.**

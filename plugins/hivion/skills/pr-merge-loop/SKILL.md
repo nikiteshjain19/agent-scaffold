@@ -222,8 +222,9 @@ the `CYCLE-MERGE-RESULT` block.
      this PR. An approved PR queues nothing, because a merged PR has no question left to ask.
 9. When this PR merged in the auto lane, print its WHAT IT DOES block first, as AUTO LANE step 19
    requires. The escalate lane's card already carries the report of its merge. After a stop, print
-   the reason for it first. Then return the block below. Then print the FINAL SUMMARY row and the
-   DIGEST for this PR, in their own shapes.
+   the reason for it first. Then return the block below. Then print the FINAL SUMMARY row, the FINAL
+   SUMMARY "Footprint widenings" block and the DIGEST for this PR, in their own shapes. The
+   `cycle-manager` skill's RUN REPORT re-prints the widening lines from that block.
 
 ```text
 CYCLE-MERGE-RESULT
