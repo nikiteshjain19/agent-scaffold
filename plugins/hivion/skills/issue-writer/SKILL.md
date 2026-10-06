@@ -249,8 +249,9 @@ commits a decision itself.
 **On the plan path (§1), one plan unit becomes one issue.** Never re-slice, merge or re-order the
 units here. Raise a gap or a mismatch with the user instead of correcting the plan.
 
-- **One issue = one PR-sized change.** `issue-loop §4.3` stops and asks when work exceeds ~10
-  files or changes a public API — so slice deliberately below that. If you can't state the
+- **One issue = one PR-sized change.** The declared footprint (§4) is the issue's size bound.
+  `issue-loop §4.3` stops and asks when the work changes a public API the issue does not name. It
+  applies its ~10-file stop only to an issue that declares no footprint. If you can't state the
   acceptance criteria in ~6 observable checks, it's too big. Flag in §5's issue table every issue
   expected to exceed the size threshold (§0). Escalation condition 5 sends its PR to a human.
 - **Vertical slices, not layers.** "User can export a report" (schema + endpoint + UI + test) —
@@ -317,6 +318,8 @@ The wave this issue belongs to, and the plan file it came from — e.g. "wave 2 
 
 ## Declared file footprint
 Every file and directory this issue is expected to create or change, as a list, one path per line.
+Declare the whole reach of an operation, not only the files you create: a migration names its
+migrations directory.
 Name the section inside a document you must update — `PROJECT.md`, "Build / lint / test commands",
 not `PROJECT.md` alone. Name a `PROJECT.md` section; never number it.
 Be specific enough to check a diff against: `src/reports/export.ts`, not "the reports code".
