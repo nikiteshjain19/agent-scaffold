@@ -293,7 +293,8 @@ Report which one stopped the run, by name.
 
 **Predicate 5 counts every verdict discarded because its `HEAD` no longer equals the pull request's
 current head.** You discard one in DRIVE step 3, in MERGE step 1, and in a carried pull request's
-head check. A merger discards one when it stops on a void verdict. Report each discarded verdict's
+head check. A merger discards one when it stops on a void verdict. A repairer that returns no C4
+block discards one when its head moved, under RUN-ORDER QUESTIONS. Report each discarded verdict's
 `HEAD` and the head that replaced it, so a reader can check the count (scaffold D-20).
 
 ---
@@ -427,7 +428,8 @@ subagent.
    `gh pr view <n> --json additions,deletions`.
 3. The lower pull-request number.
 
-A wrong order can only stop a merger. Each merger re-reads the head commit, as C5 requires.
+A wrong order can only stop a merger. Each merger re-reads the head commit, as C5 requires. In
+single-PR mode, step 1 never applies: a stacked parent and its child never merge in the same pass.
 
 **A reviewer that returns no C2 block** gets one fresh reviewer, as DRIVE step 3 states. That
 changes only which agent runs next.
@@ -442,10 +444,10 @@ failed. So a re-dispatch is more than a choice of what runs next. Route it by th
 - **A repairer that returns no C4 block stops the loop**, as predicate 4 does. Read the pull
   request's current head. Compare it with the head the C3 brief named.
   - When the head did not move, carry this round's verdict to DIGEST, as DRIVE step 8 does.
-  - When the head moved, the verdict is void. Give it no digest entry, and dispatch no merger on it.
-    The pull request goes nowhere else in this run, as a predicate 5 stop does. Name it in the run
-    report with both heads. HARD RULES: "Never relay a verdict whose `HEAD` does not match the
-    current head."
+  - When the head moved, the verdict is void. Count the move under predicate 5, as DRIVE step 3
+    counts one, and name both heads in the run report. Give the verdict no digest entry, and
+    dispatch no merger on it. The loop stays stopped, so no reviewer is re-dispatched. HARD RULES:
+    "Never relay a verdict whose `HEAD` does not match the current head."
 
 **What never qualifies.** The manager never answers these questions:
 
