@@ -196,6 +196,67 @@ a change to `CLAUDE.md` lands before, or together with, any skill that depends o
 - **Working style:** async-first. An agent may implement and open PRs, but never merges its own.
 - **Keep the scaffold generic:** project-specific facts live here, never in `CLAUDE.md` or a skill.
 
+## 7. Releases
+
+**The `version` field is the release.** A consumer receives a change only when `version` in
+`plugins/hivion/.claude-plugin/plugin.json` changes. A merge to `main` alone ships nothing (D-47).
+
+### Version scheme
+
+Semantic versioning, `MAJOR.MINOR.PATCH`:
+
+- **Patch** — a wording change.
+- **Minor** — a new skill, or a new rule.
+- **Major** — a change that breaks a consuming repository. Three shapes count: renaming a
+  `PROJECT.md` section the skills read by name, renaming a skill, and renaming the plugin.
+
+### The bump rule
+
+- Bump `version` only when a release is cut, in a release pull request.
+- Write the release's `CHANGELOG.md` section in that same pull request.
+- Never edit `version` or `CHANGELOG.md` in an ordinary pull request.
+
+**Why not bump in every pull request:** two open pull requests would both edit the same `version`
+line, so every parallel pair would conflict.
+
+`CHANGELOG.md` records **what** changed for a consumer. `decisions.d/` records **why**. Neither
+replaces the other.
+
+### Cutting a release
+
+1. File a release issue with the `issue-writer` skill (`CLAUDE.md` §2).
+2. List the pull requests merged since the last tag:
+   `git log --first-parent --merges --format=%s <last tag>..main`. Each merge commit's subject
+   reads `<PR title> (#<n>)` ("Toolchain", "Merge strategy").
+3. Choose the version from the version scheme above.
+4. Open the release pull request. It changes `version` and adds a `CHANGELOG.md` section at the
+   top, newest first, in Keep a Changelog shape. List a merged pull request only if a consumer
+   receives its change. Add the section's compare link at the foot of the file.
+5. After that pull request merges, tag its merge commit: `git tag -a vX.Y.Z <merge SHA>`. Push
+   the tag.
+6. Publish a GitHub Release from the tag. Its notes are that `CHANGELOG.md` section:
+   `gh release create vX.Y.Z --title vX.Y.Z --notes-file <section file>`.
+7. Read the tag back from the host: `git ls-remote --tags origin vX.Y.Z`. Read the Release back:
+   `gh release view vX.Y.Z`.
+
+The release pull request edits `plugins/**`, a risk-list path, so it always escalates. The owner
+cuts the tag and the Release, or an agent holding the owner's explicit go-ahead does (D-47).
+
+**`v0.3.0` spans the switch to merge commits (D-63).** The pull requests merged before the switch
+landed as squash commits, and `--merges` omits them. For that one release, drop `--merges` from
+step 2. Every commit on the first-parent line of `main` is then one merged pull request.
+
+### Pinning
+
+A consuming repository can pin the marketplace to a tag:
+`/plugin marketplace add nikiteshjain19/agent-scaffold#vX.Y.Z` ("Pin a version" in `README.md`).
+The Claude Code documentation states the `#ref` form, in "Install and manage plugins", "Add a
+marketplace".
+
+A pinned repository stays on its tag until its owner moves the pin to a newer tag. A
+major bump means that move needs work in the consuming repository first. Open a major release's
+`CHANGELOG.md` section with an upgrade note that names the work.
+
 ---
 
 *Maintain this file through the normal ticket + PR flow. Workflow rules go in `CLAUDE.md`; project

@@ -28,3 +28,9 @@ config:
   # commands" section and the issue-writer skill both cite "§11 rule 4". Renumbering to
   # satisfy MD029 would silently break every citation.
   MD029: false
+
+  # CHANGELOG.md repeats `### Added`, `### Changed` and `### Fixed` under every release, as
+  # Keep a Changelog requires. A repeated heading is still rejected among its siblings, under
+  # one parent heading.
+  MD024:
+    siblings_only: true

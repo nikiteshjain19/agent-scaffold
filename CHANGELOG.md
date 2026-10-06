@@ -3,6 +3,10 @@
 This file records what changed for a consumer of the `hivion` plugin, and `decisions.d/` records
 why.
 
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the versions
+follow [Semantic Versioning](https://semver.org/). `PROJECT.md`, "Releases", states the version
+scheme, the bump rule and the release steps. A release pull request adds each section.
+
 ## [0.2.0] - 2026-10-05
 
 **Upgrade note.** Re-copy `CLAUDE.md` from this release, because the plugin does not carry it. The
