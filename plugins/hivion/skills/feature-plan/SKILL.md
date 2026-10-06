@@ -115,8 +115,10 @@ section below reads as a consequence of it rather than an assertion beside it.
   question at the §5 approval gate. Plan the units that depend on it against the user's answer,
   never against an assumed one.
 - **A one-unit design exits here.** When the design comes out as a single unit, say so. Skip §3 and
-  §4: a single unit needs no waves and no frozen contracts. Hand it to the `issue-writer` skill
-  directly.
+  §4: a single unit needs no waves and no frozen contracts. Present the one-unit design and stop
+  for approval under §5, exactly as a plan. Write no plan file, and schedule no "Commit this plan"
+  unit. On approval, hand the unit to the `issue-writer` skill. It drafts the unit with no plan
+  file: Wave "none".
 
 ## 3. FREEZE CONTRACTS — the surfaces parallel work builds against
 
@@ -206,7 +208,7 @@ files each touches so the reader can check.
 ## 5. PRESENT AND STOP — the approval gate
 
 Write the plan to `docs/plans/<slug>.md` in the working tree. Leave it uncommitted, and present
-it. Structure:
+it. A one-unit design (§2) writes no plan file, and the stop below still applies to it. Structure:
 
 ```markdown
 # <Feature> — plan
@@ -246,13 +248,14 @@ for it:
 1. Name the unit "Commit this plan". Put it in wave 0, as the wave's only unit or beside a wave-0
    layout unit (§4 item 4).
 2. Give it a footprint of two files: the plan file, and the plan's decision entry,
-   `decisions.d/<date>-<that unit's issue id>.md`.
+   `decisions.d/<date>-<that unit's issue id>.md`. The unit's issue also carries the full approved
+   plan text, because its lane works in a fresh worktree that holds no uncommitted file.
 3. Make the decision entry record the chosen approach and the rejected alternatives. Make it record
    the frozen contracts too, or point at the plan's Contracts section.
 4. Block every other unit by it.
 
 The `issue-writer` skill files that unit like any other, so the plan lands through an issue and a
-PR.
+PR. A one-unit design carries no "Commit this plan" unit, because it has no plan file.
 
 **Mark a skill this plan proposes** by writing `(proposed)` one space after its name, spelled
 exactly so, because the name resolves to no installed skill yet. Example: the `zz-example-skill`
