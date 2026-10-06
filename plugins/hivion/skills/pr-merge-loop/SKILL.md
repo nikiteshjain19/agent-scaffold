@@ -589,8 +589,9 @@ Record the PR's head commit SHA before you start. The classification belongs to 
    before you compare it, under the `issue-loop` skill's rule "Normalise every declared path first",
    in its section "The disjointness test". Without that step, a changed `PROJECT.md` matches no
    entry written as `PROJECT.md`, "Build / lint / test commands", and reads as a stray. Name every
-   changed file outside the normalised footprint. A stray covered by a K10f request (`issue-loop` §4
-   step 8) is pending the reviewer's decision. It does not by itself send the PR to the escalate
+   changed file outside the normalised footprint. A stray covered by a widening request, in the form
+   `issue-loop` §4 step 8 gives, is pending the reviewer's decision. It does not by itself send the
+   PR to the escalate
    lane. AUTO LANE's verdict decides. A stray with no request fires. This condition also fires when
    the ticket declares no footprint, or a footprint entry names no path.
 4. **A test deleted, skipped or weakened.** Search the diff for removed test files, removed
@@ -766,7 +767,7 @@ This one says what the review found. A PR can carry both, and one never substitu
 11. Capture the resulting merge/squash commit SHA on BASE.
 12. `SET_STATUS` on the resolved issue id → the target state from CONFIG.
 13. `ADD_COMMENT` with the PR URL and the merge commit SHA, if the comment policy is on. Then comment
-    each approved widening's K10i line on the issue.
+    each approved widening's bold "Footprint widened" line on the issue.
 14. Merge only, and say "no tracker update (no ticket linked)", when no issue id resolves.
 15. **SWEEP THE DEPENDENTS** of the merged ticket. Run the DEPENDENT SWEEP below.
 16. **RETARGET EVERY OPEN CHILD** of the PR you just merged. Run items 4 to 9 of STACKED PAIRS.
@@ -819,7 +820,9 @@ safety (`CLAUDE.md` §6).
 ### WIDEN THE FOOTPRINT — write each approved path before the merge
 
 Run this in both lanes, before the merge. Approved paths are the `clear — widening approved` lines
-of the reviewer's condition 3. In the escalate lane they are the extra files the owner approved.
+of the reviewer's condition 3. In the escalate lane they are the paths the reviewer approved, and
+the extra files the owner
+approved on the card.
 
 1. Read the issue's `## Declared file footprint` section, and note its current text.
 2. Append one line per approved path, in this form:
@@ -1068,7 +1071,8 @@ to "wait" promises an action and delivers silence.
   f. Update the tracker for the resolved issue id:
   - `SET_STATUS` → target state.
   - `ADD_COMMENT` with the PR URL and the merge commit SHA (if the comment policy is on).
-  - After the merge, `ADD_COMMENT` on the issue with each approved widening's K10i line.
+  - After the merge, `ADD_COMMENT` on the issue with each approved widening's bold "Footprint
+    widened" line.
   g. Confirm merged + ticket updated. If no ticket id was found, merge only and say
      "no tracker update (no ticket linked)".
   h. **Sweep the dependents of the merged ticket:** run the DEPENDENT SWEEP below, and report its
@@ -1313,7 +1317,8 @@ Then name every stacked pair the run found (STACKED PAIRS). Give the parent, the
 child's base branch. Say for each child whether the run retargeted it, or what it still waits on.
 Say "the run found no stacked pair" in one sentence when it found none.
 
-**Footprint widenings.** Print every approved widening as a K10i line, in bold. Or print the sentence
+**Footprint widenings.** Print every approved widening as a bold "Footprint widened" line. Or print
+the sentence
 "This run approved no footprint widening."
 
 ```markdown

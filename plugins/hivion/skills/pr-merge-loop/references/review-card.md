@@ -23,7 +23,7 @@ merge.
 
    ```markdown
    **Unexplained extra file — `<path>`: the PR body gives no reason for changing it. Approving this PR approves the file.**
-   **Refused extra file — `<path>`: the reviewer refused it — <the reviewer's K10g reason>. Approving this PR approves the file.**
+   **Refused extra file — `<path>`: the reviewer refused it — <the reviewer's condition-3 reason, `pr-reviewer` §5 condition 3>. Approving this PR approves the file.**
    **Extra file that needs you — `<path>` (risk-listed): <the request's reason>. Approving this PR approves the file.**
    ```
 

@@ -490,14 +490,14 @@ merger has returned.
    So an answer reaches the issue only when a human posts it there and clears the signal. Say so.
 3. Write each verdict entry in the shape the `pr-merge-loop` skill's `ASK BLOCK` section defines,
    and under the plain-language rule that skill states. Cite that shape rather than re-specifying
-   it. Before each verdict entry's ASK block, print three things, so the approval it asks for is
+   it. Before each verdict entry's ASK block, print these things, so the approval it asks for is
    valid (`CLAUDE.md` §6, approval gate rule 3):
    1. **What the pull request changes**, in at most three bullets. Write them from
       `gh pr view <n>` and `gh pr diff <n>`. THE BAR allows that reading. Nothing of it enters C1,
       C3 or C5.
    2. **The outcome of the seven pre-merge checks**, taken from the verdict's `FINDINGS` block.
    3. **One bottom-line sentence** that names what decides the merge.
-   An entry whose verdict carries an owner-decided widening names each path and its reason.
+   4. **An owner-decided widening.** When the verdict carries one, name each path and its reason.
 4. Re-print a merger's queued question unchanged. Say which cycle a carried entry came from.
 5. Name the stop predicate that ended each pull request's loop, and the round number.
 6. Name the head commit each entry describes, from its verdict's `HEAD` field.
@@ -720,8 +720,9 @@ Then print each merger's own final summary and digest, unchanged.
 
 Then print every question the closing pass raised, unchanged. Say that its pull request stays open.
 
-**Footprint widenings.** Print this bold section. Re-print every K10i line the mergers reported, in
-bold, in this form:
+**Footprint widenings.** Print this bold section. Re-print every bold "Footprint widened" line the
+mergers reported, in
+this form:
 
 ```markdown
 **Footprint widened — PR #<n>, issue #<id>: `<path>` — <why>. Approved by <approver>, on head <SHA>. Revert it by reverting PR #<n>, or by asking for the file to be restored.**
