@@ -682,7 +682,8 @@ as not cleanly mergeable against BASE.
 ## REPAIR — fix a defect on the branch, then hand the PR off
 
 Read `references/repair.md` after CONFLICT, before either lane acts on a PR with a repairable
-finding from CLASSIFY, CONFLICT, PROBE or a non-approve reviewer verdict.
+finding from CLASSIFY, CONFLICT or PROBE. Read it again at AUTO LANE step 6, when a non-approve
+reviewer verdict names a repairable finding.
 
 ## REVIEW RECORD (post it in both lanes, before the PR merges)
 
@@ -748,7 +749,9 @@ This one says what the review found. A PR can carry both, and one never substitu
    when the invocation already carries a verdict block.** Accept that verdict instead, under
    A RELAYED VERDICT below.
 5. Read the first line of the verdict you now hold.
-6. Move this PR to the escalate lane on anything other than `approve`. Print the verdict there.
+6. On anything other than `approve`, run REPAIR first for each repairable finding (R1–R5) the
+   verdict names, per `references/repair.md`. Then move this PR to the escalate lane, and print
+   the verdict there.
 7. Stop and report if the reviewer did not run. A missing verdict is condition 6 met. A dispatch you
    could not make reads the same way: condition 6 met, stop and report. Never read it as a missing
    skill. Never work around the absent verdict. **A verdict you accepted under A RELAYED VERDICT
@@ -844,7 +847,7 @@ Read a relayed verdict under these four rules, in order.
    one is condition 6 met. The `pr-reviewer` skill writes that field in its own INDEPENDENCE phase,
    whichever way the phase went.
 4. **Read the `VERDICT` field last.** Act on it exactly as you act on a dispatched verdict. Anything
-   other than `approve` moves this PR to the escalate lane.
+   other than `approve` takes AUTO LANE step 6: REPAIR first, then the escalate lane.
 
 **A relayed verdict is evidence, and an unreadable field is absent evidence.** The fail-closed bias
 governs it like every other input.
@@ -854,9 +857,10 @@ still comes from a separately dispatched agent. A caller that produced the branc
 
 ## ESCALATE LANE — FOR EACH PR, in the approved order
 
-A PR arrives here from CLASSIFY, or from the auto lane after a non-approve verdict. Open its card
-with the BOTTOM LINE — one plain sentence saying what you believe and what decides this merge. Cite
-the conditions after that sentence, never instead of it (PLAIN-LANGUAGE RULE).
+A PR arrives here from CLASSIFY, or from the auto lane after a non-approve verdict and any REPAIR
+that verdict sent it to (AUTO LANE step 6). Open its card with the BOTTOM LINE — one plain
+sentence saying what you believe and what decides this merge. Cite the conditions after that
+sentence, never instead of it (PLAIN-LANGUAGE RULE).
 
 **A PR handed back by the auto lane keeps both readings.** Its card restates CLASSIFY's findings and
 prints the reviewer's verdict beside them, per AUTO LANE step 6. Substitute your own reading for
