@@ -89,6 +89,11 @@ without opening any other file:
    "The test that chooses". Never restate that test here, so the two cannot drift. Read no diff.
    If the test says the project is new, run `CLAUDE.md` §0 instead, and say why. If §0 calls the
    result ambiguous, ask the owner which path to take. Never pick the new-project path by default.
+
+   The routing test's output is precondition evidence only. Its path list and its issue count
+   choose the path, and nothing else. Count the open issues. Never read their titles, labels or
+   bodies before the interview. Never quote the routing test's output in the interview, and never
+   build a question from it.
 3. **Can you find the workflow file?** If the root `CLAUDE.md` is the project's own and holds no
    §0, STOP. Ask the owner how the workflow file is supplied.
 
@@ -105,9 +110,17 @@ topic. Propose the default risk list in topic 7, exactly as §0 says.
 - topic 4 — what is in flight now, and what must ship before what;
 - topic 7 — which check the owner trusts today, and how often it is wrong.
 
+**Ask from §0 and this skill alone.** Every question comes from `CLAUDE.md` §0's topic list, the
+present-tense changes above, or the four adoption questions. Add no question of your own. Name
+nothing the owner has not named first: no file, feature, defect, service, issue, pull request,
+label or person from the repository or the tracker. Where an example helps, take it from §0's own
+text. Why: a question that names what the code holds asks the owner to confirm the code. The survey
+tests the owner's claims, and a primed claim tests nothing.
+
 **Ask four adoption questions after topic 7:**
 
-1. Which pull requests and branches are open, and what should happen to each?
+1. Which pull requests and branches are open, and what should happen to each? Ask it without
+   listing them. The survey lists them in 2.2 item 8.
 2. Which earlier decisions do you want recorded? Record only the ones the owner states.
 3. Does the repository hold an agent instruction file already? Ask what it is for.
 4. Has a secret ever been committed? Ask where, and whether it was rotated.
@@ -405,7 +418,10 @@ autonomy.
 - **Never read code, docs or configuration before the interview is recorded.** One exception
   exists: the workflow file, the scaffold's rules file, for the §0 topics. Do not act on, or quote
   in the interview, any project-specific instruction beyond §0. PRECONDITIONS lists the three facts
-  you may check.
+  you may check. What those checks print is read, too: never quote it, and never build a question
+  from it.
+- **Never ask a question that `CLAUDE.md` §0 and this skill do not list**, and never illustrate one
+  with something from the repository or the tracker.
 - **Never pass the interview record to the surveyor.**
 - **In RECONCILE, never ask the owner a question a command can settle.** The interview asks for the
   owner's claim on purpose.
