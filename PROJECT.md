@@ -61,6 +61,16 @@ and keeps a branch that an open PR is based on (the `pr-merge-loop` skill, STACK
 - **Issue-id format:** `#N`. GitHub auto-links it, and `Closes #N` closes it.
 - **Merge-comment policy:** on merge, comment the PR URL and the merge commit SHA on the issue.
 
+### Multica dispatch surface
+
+Agents working this repository are dispatched from a Multica workspace. That workspace is not a
+second tracker. GitHub Issues stays authoritative, and "ticket" means a GitHub issue here.
+
+- A Multica issue exists only to start and record an agent run. It is never a ticket.
+- Every Multica dispatch issue names the GitHub issue it is working, as `#N`.
+- The status of the work lives on the GitHub issue, under "Tracker mapping" above.
+- Neither system is mirrored into the other, in either direction.
+
 ## 3. Build / lint / test commands
 
 - **Build:** none.
@@ -116,13 +126,17 @@ plugins/**
 LICENSE
 package.json
 package-lock.json
+.markdownlint-cli2.yaml
 ```
 
 The list is broad on purpose. This project's product is its own governance, so a change here
 changes the rules agents follow.
 
-`package.json` and `package-lock.json` are listed because a dependency change is exactly what
-escalation condition 1 exists for.
+`package.json`, `package-lock.json` and `.markdownlint-cli2.yaml` are listed because a change to
+the gate's own inputs is exactly what escalation condition 1 exists for. The first two pin the
+lint *tooling*; the third holds the lint *rules*. D-3 recorded that a change to the gate shows up
+as a change to `package.json`, which is true of the tooling and not of the rules: a PR that
+disables one rule narrows the green signal while that same signal reports success.
 
 ### Size threshold
 
