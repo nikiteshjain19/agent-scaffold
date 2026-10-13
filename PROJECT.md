@@ -61,16 +61,6 @@ and keeps a branch that an open PR is based on (the `pr-merge-loop` skill, STACK
 - **Issue-id format:** `#N`. GitHub auto-links it, and `Closes #N` closes it.
 - **Merge-comment policy:** on merge, comment the PR URL and the merge commit SHA on the issue.
 
-### Multica dispatch surface
-
-Agents working this repository are dispatched from a Multica workspace. That workspace is not a
-second tracker. GitHub Issues stays authoritative, and "ticket" means a GitHub issue here.
-
-- A Multica issue exists only to start and record an agent run. It is never a ticket.
-- Every Multica dispatch issue names the GitHub issue it is working, as `#N`.
-- The status of the work lives on the GitHub issue, under "Tracker mapping" above.
-- Neither system is mirrored into the other, in either direction.
-
 ## 3. Build / lint / test commands
 
 - **Build:** none.
