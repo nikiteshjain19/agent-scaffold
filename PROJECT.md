@@ -116,13 +116,17 @@ plugins/**
 LICENSE
 package.json
 package-lock.json
+.markdownlint-cli2.yaml
 ```
 
 The list is broad on purpose. This project's product is its own governance, so a change here
 changes the rules agents follow.
 
-`package.json` and `package-lock.json` are listed because a dependency change is exactly what
-escalation condition 1 exists for.
+`package.json`, `package-lock.json` and `.markdownlint-cli2.yaml` are listed because a change to
+the gate's own inputs is exactly what escalation condition 1 exists for. The first two pin the
+lint *tooling*; the third holds the lint *rules*. D-3 recorded that a change to the gate shows up
+as a change to `package.json`, which is true of the tooling and not of the rules: a PR that
+disables one rule narrows the green signal while that same signal reports success.
 
 ### Size threshold
 
